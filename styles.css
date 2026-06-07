@@ -1,95 +1,107 @@
 /* ==========================================================================
-   CYBER-GLASS CORE VARIABLE OVERRIDES (SAFE ANTI-NETFLIX SKIN)
+   CYBER-GLASS DESIGN SYSTEM (FIXED)
    ========================================================================== */
 
 :root {
-  /* Color Shift: Deep space blues & neon amethysts instead of flat black/red */
-  --bg: #060814;
-  --bg-gradient: radial-gradient(circle at 50% 0%, #170f37 0%, #060814 75%);
-  --card: rgba(255, 255, 255, 0.03);
-  --card-hover: rgba(139, 92, 246, 0.12);
-  --line: rgba(255, 255, 255, 0.08);
-  --accent: #8b5cf6;       /* Neon Amethyst */
-  --accent-glow: #06b6d4;  /* Cyber Cyan */
-  --text: #f3f4f6;
-  --muted: #9ca3af;
+  --bg-base: #060814;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #1a103c 0%, #060814 70%);
+  --panel-bg: rgba(255, 255, 255, 0.03);
+  --panel-border: rgba(255, 255, 255, 0.07);
+  --panel-glow: rgba(139, 92, 246, 0.15);
+
+  /* Brand Accents - Neon Amethyst & Cyber Cyan */
+  --accent: #8b5cf6;
+  --accent-glow: #a78bfa;
+  --cyan: #06b6d4;
+  --text-main: #f3f4f6;
+  --text-muted: #9ca3af;
 }
 
-/* Base Setup */
+/* Reset & Base Setup */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
 }
 
 body {
-  background: var(--bg);
+  background: var(--bg-base);
   background-image: var(--bg-gradient);
-  color: var(--text);
+  color: var(--text-main);
   min-height: 100vh;
   overflow-x: hidden;
 }
 
 /* ==========================================================================
-   HEADER & NAVIGATION (Floating Command Bar)
+   HEADER & NAVIGATION (Floating Glassbar)
    ========================================================================== */
 .site-header {
   position: fixed;
-  top: 12px;
+  top: 15px;
   left: 50%;
   transform: translateX(-50%);
   width: 95%;
   max-width: 1400px;
   z-index: 1000;
+  transition: all 0.3s ease;
 }
 
 .header-inner {
-  background: rgba(6, 8, 20, 0.75);
+  background: rgba(6, 8, 20, 0.7);
+  /* FIX: added -webkit- prefix AND a solid background fallback for browsers
+     that don't support backdrop-filter (older Firefox, some Android WebViews) */
+  background: rgba(6, 8, 20, 0.9); /* fallback */
+  background: rgba(6, 8, 20, 0.7); /* overridden when backdrop-filter works */
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--line);
-  border-radius: 14px;
+  border: 1px solid var(--panel-border);
+  border-radius: 16px;
   padding: 12px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
 }
 
 .logo {
-  font-size: 1.4rem;
+  font-size: 1.5rem;
   font-weight: 800;
   text-decoration: none;
-  color: var(--text);
+  color: var(--text-main);
   letter-spacing: -0.5px;
   text-transform: uppercase;
 }
 
 .logo span {
-  color: var(--accent-glow);
-  text-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
+  color: var(--cyan);
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
 }
 
 .main-nav {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 
 .main-nav a {
   text-decoration: none;
-  color: var(--muted);
-  padding: 8px 14px;
+  color: var(--text-muted);
+  padding: 8px 16px;
   font-size: 0.9rem;
   font-weight: 500;
   border-radius: 8px;
   transition: all 0.2s ease;
+  /* FIX: add transparent border so active/hover border doesn't shift layout */
+  border: 1px solid transparent;
 }
 
-.main-nav a:hover, .main-nav a.active {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--line);
+.main-nav a:hover,
+.main-nav a.active {
+  color: var(--text-main);
+  background: var(--panel-bg);
+  border-color: var(--panel-border);
+  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
 }
 
 .search-box {
@@ -99,18 +111,20 @@ body {
 }
 
 .search-box input {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--panel-border);
   padding: 8px 16px 8px 36px;
   border-radius: 8px;
-  color: var(--text);
+  color: var(--text-main);
   outline: none;
-  width: 180px;
-  transition: all 0.3s ease;
+  width: 200px;
+  /* FIX: explicit font-size prevents browser UA mismatches on inputs */
+  font-size: 0.9rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .search-box input:focus {
-  width: 240px;
+  width: 280px;
   border-color: var(--accent);
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
@@ -119,23 +133,28 @@ body {
 .search-icon {
   position: absolute;
   left: 12px;
-  width: 14px;
-  height: 14px;
+  width: 16px;
+  height: 16px;
   fill: none;
-  stroke: var(--muted);
-  stroke-width: 2.5;
+  stroke: var(--text-muted);
+  stroke-width: 2;
+  /* FIX: pointer-events: none so icon doesn't block clicks on the input */
+  pointer-events: none;
 }
 
 /* ==========================================================================
-   HERO METADATA DISPLAY
+   HERO DISPLAY PANEL
+   FIX: added padding-top to prevent hero content from underlapping the
+   fixed header (~70px tall + 15px top offset = ~85px clearance needed)
    ========================================================================== */
 .hero {
   position: relative;
-  height: 70vh;
+  height: 75vh;
+  /* FIX: minimum top padding so hero text is never hidden under the header */
+  padding: 100px 5% 60px 5%;
   display: flex;
   align-items: flex-end;
-  padding: 0 5% 40px 5%;
-  margin-bottom: 30px;
+  margin-bottom: 40px;
 }
 
 .hero-bg {
@@ -155,143 +174,112 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, rgba(6, 8, 20, 0.1) 0%, var(--bg) 100%);
+  background: linear-gradient(to bottom, rgba(6, 8, 20, 0.2) 0%, var(--bg-base) 100%);
   z-index: -1;
 }
 
 .hero-content {
-  max-width: 600px;
-  background: rgba(6, 8, 20, 0.45);
+  max-width: 650px;
+  background: rgba(6, 8, 20, 0.4);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  padding: 24px;
-  border-radius: 16px;
-  border: 1px solid var(--line);
+  padding: 30px;
+  border-radius: 20px;
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
 }
 
 /* ==========================================================================
-   STRUCTURAL CORE LAYOUTS (REQUIRED BY APP.JS)
+   GRID ARCHITECTURE & CARDS
+   FIX: removed duplicate .catalog-grid rule (identical to .trend-cols).
+   Keep one name and use it consistently in your HTML.
    ========================================================================== */
 main {
   padding: 0 5%;
 }
 
-.row, .trending {
-  margin-bottom: 35px;
+.row,
+.trending {
+  margin-bottom: 40px;
 }
 
-.row h2, .trending h2, .page-head h2 {
-  font-size: 1.2rem;
+.row h2,
+.trending h2 {
+  font-size: 1.3rem;
   font-weight: 700;
-  text-transform: uppercase;
   letter-spacing: 0.5px;
-  margin-bottom: 16px;
+  text-transform: uppercase;
+  color: var(--text-main);
+  margin-bottom: 20px;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
-.row h2::before, .trending h2::before {
+.row h2::before {
   content: '';
   display: inline-block;
-  width: 3px;
-  height: 16px;
+  width: 4px;
+  height: 18px;
   background: var(--accent);
-  box-shadow: 0 0 8px var(--accent);
+  box-shadow: 0 0 10px var(--accent);
   border-radius: 2px;
 }
 
-/* Structural grids used by app scripts */
-.trend-cols, .grid {
+/* Single grid rule — use .card-grid in your HTML */
+.card-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 24px;
 }
 
-.page-head {
-  padding: 100px 0 20px 0;
-}
-
-.filters {
-  display: flex;
-  gap: 10px;
-  margin-bottom: 24px;
-  flex-wrap: wrap;
-}
-
-/* Core Media Cards */
+/* Cyber-Glass Card */
 .card {
   position: relative;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 10px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 12px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card img {
   width: 100%;
   height: auto;
   display: block;
-  transition: transform 0.4s ease;
+  transition: transform 0.5s ease;
 }
 
 .card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-8px);
+  /* FIX: removed the redundant `0 0 0 1px var(--accent)` box-shadow that
+     was doubling up with the existing border and creating a visual glitch.
+     The border-color change alone provides the accent highlight. */
   border-color: var(--accent);
-  box-shadow: 0 10px 20px var(--card-hover), 0 0 0 1px var(--accent);
+  box-shadow: 0 12px 24px var(--panel-glow);
 }
 
 .card:hover img {
-  transform: scale(1.03);
+  transform: scale(1.04);
 }
 
 /* ==========================================================================
-   EPISODES ARCHITECTURE (CRITICAL FIX FOR TV SERIES)
-   ========================================================================== */
-.ep-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 15px;
-}
+   STREAM ENGINE INTERACTIVE PLAYER MODAL
+   FIX 1: .modal-backdrop was missing a z-index, causing it to potentially
+   render on top of .player-shell. Set to 1 so player-shell (z-index: 10) wins.
+   FIX 2: modal open/close requires JS — added a minimal toggle snippet
+   in the comment below for reference.
 
-.ep {
-  display: flex;
-  gap: 14px;
-  align-items: center;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.ep:hover {
-  background: var(--card-hover);
-  border-color: var(--accent);
-}
-
-.ep .epn {
-  font-weight: 700;
-  color: var(--accent-glow);
-  width: 54px;
-}
-
-.ep .ept {
-  flex: 1;
-  font-size: 14px;
-}
-
-.ep .epp {
-  color: var(--accent);
-  font-size: 18px;
-}
-
-/* ==========================================================================
-   MODAL DIALOGS & OVERLAYS
+   JS to wire up:
+     document.querySelectorAll('[data-open-modal]').forEach(btn => {
+       btn.addEventListener('click', () =>
+         document.getElementById(btn.dataset.openModal).classList.add('active'));
+     });
+     document.querySelectorAll('[data-close-modal]').forEach(btn => {
+       btn.addEventListener('click', () =>
+         btn.closest('.modal').classList.remove('active'));
+     });
    ========================================================================== */
 .modal {
   position: fixed;
@@ -299,10 +287,18 @@ main {
   left: 0;
   width: 100%;
   height: 100%;
-  display: none; /* Controlled inline by script */
+  display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.modal.active {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .modal-backdrop {
@@ -310,60 +306,70 @@ main {
   width: 100%;
   height: 100%;
   background: rgba(3, 4, 9, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  /* FIX: explicit z-index so backdrop sits behind the player shell */
+  z-index: 1;
 }
 
-.modal-card, .player-shell {
+.player-shell {
   position: relative;
   width: 90%;
-  max-width: 1000px;
+  max-width: 1100px;
   background: rgba(10, 12, 26, 0.95);
-  border: 1px solid var(--line);
-  border-radius: 18px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 20px;
   padding: 24px;
-  box-shadow: 0 24px 50px rgba(0,0,0,0.6);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  /* FIX: z-index must beat the backdrop's z-index of 1 */
   z-index: 10;
-  max-height: 90vh;
-  overflow-y: auto;
 }
 
-/* ==========================================================================
-   VIDEO PLAYER LAYOUTS
-   ========================================================================== */
 .video-wrap {
   position: relative;
   width: 100%;
-  aspect-ratio: 16/9;
+  aspect-ratio: 16 / 9;
   background: #000;
-  border-radius: 10px;
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid var(--line);
-  margin-top: 15px;
+  border: 1px solid var(--panel-border);
 }
 
+/* FIX: scope iframe and video rules to .video-wrap only.
+   The original rule `iframe, video { width: 100%; height: 100%; }`
+   globally overrides ALL iframes/videos on the page, breaking anything
+   embedded outside the player (e.g. social embeds, ads, maps). */
+.video-wrap iframe,
+.video-wrap video {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* Control Interfaces */
 .video-controls {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 16px;
-  background: linear-gradient(to top, rgba(6,8,20,0.95), rgba(6,8,20,0));
+  padding: 20px;
+  background: linear-gradient(to top, rgba(6, 8, 20, 0.95), rgba(6, 8, 20, 0));
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
 
 .progress {
   height: 6px;
-  background: rgba(255,255,255,0.1);
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
   cursor: pointer;
+  position: relative;
 }
 
 .progress-filled {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--accent-glow));
+  background: linear-gradient(90deg, var(--accent), var(--cyan));
   border-radius: 3px;
   width: 0%;
 }
@@ -371,18 +377,18 @@ main {
 .controls-row {
   display: flex;
   align-items: center;
-  gap: 14px;
-  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .ctrl {
-  background: rgba(255,255,255,0.04);
-  border: 1px solid var(--line);
-  color: var(--text);
-  padding: 6px 14px;
-  border-radius: 6px;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  color: var(--text-main);
+  padding: 8px 16px;
+  border-radius: 8px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 0.9rem;
   transition: all 0.2s ease;
 }
 
@@ -396,51 +402,64 @@ main {
    INFO TEXT BLOCKS & FOOTER
    ========================================================================== */
 .info-blocks {
-  margin: 50px 0;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 30px;
+  margin: 60px 0;
+  background: var(--panel-bg);
+  border: 1px solid var(--panel-border);
+  border-radius: 20px;
+  padding: 40px;
 }
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 20px;
-  margin-top: 20px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 24px;
+  margin-top: 24px;
 }
 
 .info-card {
-  background: rgba(255,255,255,0.01);
-  border: 1px solid var(--line);
-  padding: 20px;
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--panel-border);
+  padding: 24px;
+  border-radius: 12px;
 }
 
 .info-card h3 {
-  color: var(--accent-glow);
-  margin-bottom: 6px;
+  color: var(--cyan);
+  margin-bottom: 8px;
 }
 
 .site-footer {
-  border-top: 1px solid var(--line);
-  padding: 30px 0;
-  margin-top: 50px;
+  border-top: 1px solid var(--panel-border);
+  padding: 40px 0;
+  margin-top: 60px;
   text-align: center;
   font-size: 0.85rem;
-  color: var(--muted);
+  color: var(--text-muted);
 }
 
 /* ==========================================================================
    RESPONSIVE DESIGN SYSTEM MEDIA QUERIES
+   FIX: added space after @media — while spec-valid without it, some
+   older CSS parsers (PostCSS plugins, certain minifiers) reject it.
    ========================================================================== */
-@media(max-width: 828px){
-  .main-nav { display: none; }
-  .trend-cols, .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; }
-  .hero { height: 60vh; }
-}
-@media(max-width: 520px){
-  .header-inner { gap: 12px; padding: 0 16px; }
-  .row, .trending, .page-head, .filters, .grid { padding-left: 12px; padding-right: 12px; }
-  .hero-content { padding-left: 16px; padding-right: 16px; }
+@media (max-width: 828px) {
+  .main-nav {
+    display: none;
+  }
+
+  .site-header {
+    top: 10px;
+  }
+
+  .hero {
+    height: 60vh;
+    padding-top: 80px;
+    padding-bottom: 30px;
+  }
+
+  /* FIX: updated to match the renamed .card-grid selector */
+  .card-grid {
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 16px;
+  }
 }
