@@ -1,89 +1,85 @@
 /* ==========================================================================
-   CYBER-GLASS DESIGN SYSTEM (ANTI-NETFLIX OVERHAUL)
+   CYBER-GLASS CORE VARIABLE OVERRIDES (SAFE ANTI-NETFLIX SKIN)
    ========================================================================== */
 
 :root {
-  --bg-base: #060814;
-  --bg-gradient: radial-gradient(circle at 50% 0%, #1a103c 0%, #060814 70%);
-  --panel-bg: rgba(255, 255, 255, 0.03);
-  --panel-border: rgba(255, 255, 255, 0.07);
-  --panel-glow: rgba(139, 92, 246, 0.15);
-  
-  /* Brand Accents - Neon Amethyst & Cyber Cyan */
-  --accent: #8b5cf6;
-  --accent-glow: #a78bfa;
-  --cyan: #06b6d4;
-  --text-main: #f3f4f6;
-  --text-muted: #9ca3af;
+  /* Color Shift: Deep space blues & neon amethysts instead of flat black/red */
+  --bg: #060814;
+  --bg-gradient: radial-gradient(circle at 50% 0%, #170f37 0%, #060814 75%);
+  --card: rgba(255, 255, 255, 0.03);
+  --card-hover: rgba(139, 92, 246, 0.12);
+  --line: rgba(255, 255, 255, 0.08);
+  --accent: #8b5cf6;       /* Neon Amethyst */
+  --accent-glow: #06b6d4;  /* Cyber Cyan */
+  --text: #f3f4f6;
+  --muted: #9ca3af;
 }
 
-/* Reset & Base Setup */
+/* Base Setup */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
   font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
 }
 
 body {
-  background: var(--bg-base);
+  background: var(--bg);
   background-image: var(--bg-gradient);
-  color: var(--text-main);
+  color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
 }
 
 /* ==========================================================================
-   HEADER & NAVIGATION (Floating Glassbar)
+   HEADER & NAVIGATION (Floating Command Bar)
    ========================================================================== */
 .site-header {
   position: fixed;
-  top: 15px;
+  top: 12px;
   left: 50%;
   transform: translateX(-50%);
   width: 95%;
   max-width: 1400px;
   z-index: 1000;
-  transition: all 0.3s ease;
 }
 
 .header-inner {
-  background: rgba(6, 8, 20, 0.7);
+  background: rgba(6, 8, 20, 0.75);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--panel-border);
-  border-radius: 16px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
   padding: 12px 24px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
 }
 
 .logo {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   font-weight: 800;
   text-decoration: none;
-  color: var(--text-main);
+  color: var(--text);
   letter-spacing: -0.5px;
   text-transform: uppercase;
 }
 
 .logo span {
-  color: var(--cyan);
-  text-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
+  color: var(--accent-glow);
+  text-shadow: 0 0 10px rgba(6, 182, 212, 0.6);
 }
 
 .main-nav {
   display: flex;
-  gap: 8px;
+  gap: 6px;
 }
 
 .main-nav a {
   text-decoration: none;
-  color: var(--text-muted);
-  padding: 8px 16px;
+  color: var(--muted);
+  padding: 8px 14px;
   font-size: 0.9rem;
   font-weight: 500;
   border-radius: 8px;
@@ -91,10 +87,9 @@ body {
 }
 
 .main-nav a:hover, .main-nav a.active {
-  color: var(--text-main);
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  text-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
 }
 
 .search-box {
@@ -104,18 +99,18 @@ body {
 }
 
 .search-box input {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--panel-border);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
   padding: 8px 16px 8px 36px;
   border-radius: 8px;
-  color: var(--text-main);
+  color: var(--text);
   outline: none;
-  width: 200px;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 180px;
+  transition: all 0.3s ease;
 }
 
 .search-box input:focus {
-  width: 280px;
+  width: 240px;
   border-color: var(--accent);
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 15px rgba(139, 92, 246, 0.2);
@@ -124,23 +119,23 @@ body {
 .search-icon {
   position: absolute;
   left: 12px;
-  width: 16px;
-  height: 16px;
+  width: 14px;
+  height: 14px;
   fill: none;
-  stroke: var(--text-muted);
-  stroke-width: 2;
+  stroke: var(--muted);
+  stroke-width: 2.5;
 }
 
 /* ==========================================================================
-   HERO DISPLAY PANEL
+   HERO METADATA DISPLAY
    ========================================================================== */
 .hero {
   position: relative;
-  height: 75vh;
+  height: 70vh;
   display: flex;
   align-items: flex-end;
-  padding: 0 5% 60px 5%;
-  margin-bottom: 40px;
+  padding: 0 5% 40px 5%;
+  margin-bottom: 30px;
 }
 
 .hero-bg {
@@ -160,91 +155,143 @@ body {
   left: 0;
   width: 100%;
   height: 100%;
-  background: linear-gradient(to bottom, rgba(6, 8, 20, 0.2) 0%, var(--bg-base) 100%);
+  background: linear-gradient(to bottom, rgba(6, 8, 20, 0.1) 0%, var(--bg) 100%);
   z-index: -1;
 }
 
 .hero-content {
-  max-width: 650px;
-  background: rgba(6, 8, 20, 0.4);
+  max-width: 600px;
+  background: rgba(6, 8, 20, 0.45);
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
-  padding: 30px;
-  border-radius: 20px;
-  border: 1px solid var(--panel-border);
-  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  padding: 24px;
+  border-radius: 16px;
+  border: 1px solid var(--line);
 }
 
 /* ==========================================================================
-   GRID ARCHITECTURE & CARDS
+   STRUCTURAL CORE LAYOUTS (REQUIRED BY APP.JS)
    ========================================================================== */
 main {
   padding: 0 5%;
 }
 
 .row, .trending {
-  margin-bottom: 40px;
+  margin-bottom: 35px;
 }
 
-.row h2, .trending h2 {
-  font-size: 1.3rem;
+.row h2, .trending h2, .page-head h2 {
+  font-size: 1.2rem;
   font-weight: 700;
-  letter-spacing: 0.5px;
   text-transform: uppercase;
-  color: var(--text-main);
-  margin-bottom: 20px;
+  letter-spacing: 0.5px;
+  margin-bottom: 16px;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
-.row h2::before {
+.row h2::before, .trending h2::before {
   content: '';
   display: inline-block;
-  width: 4px;
-  height: 18px;
+  width: 3px;
+  height: 16px;
   background: var(--accent);
-  box-shadow: 0 0 10px var(--accent);
+  box-shadow: 0 0 8px var(--accent);
   border-radius: 2px;
 }
 
-/* Grid Layout container */
-.trend-cols, .catalog-grid {
+/* Structural grids used by app scripts */
+.trend-cols, .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 20px;
 }
 
-/* Cyber-Glass Card */
+.page-head {
+  padding: 100px 0 20px 0;
+}
+
+.filters {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+/* Core Media Cards */
 .card {
   position: relative;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
   overflow: hidden;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card img {
   width: 100%;
   height: auto;
   display: block;
-  transition: transform 0.5s ease;
+  transition: transform 0.4s ease;
 }
 
 .card:hover {
-  transform: translateY(-8px);
+  transform: translateY(-6px);
   border-color: var(--accent);
-  box-shadow: 0 12px 24px var(--panel-glow), 0 0 0 1px var(--accent);
+  box-shadow: 0 10px 20px var(--card-hover), 0 0 0 1px var(--accent);
 }
 
 .card:hover img {
-  transform: scale(1.04);
+  transform: scale(1.03);
 }
 
 /* ==========================================================================
-   STREAM ENGINE INTERACTIVE PLAYER MODAL
+   EPISODES ARCHITECTURE (CRITICAL FIX FOR TV SERIES)
+   ========================================================================== */
+.ep-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.ep {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ep:hover {
+  background: var(--card-hover);
+  border-color: var(--accent);
+}
+
+.ep .epn {
+  font-weight: 700;
+  color: var(--accent-glow);
+  width: 54px;
+}
+
+.ep .ept {
+  flex: 1;
+  font-size: 14px;
+}
+
+.ep .epp {
+  color: var(--accent);
+  font-size: 18px;
+}
+
+/* ==========================================================================
+   MODAL DIALOGS & OVERLAYS
    ========================================================================== */
 .modal {
   position: fixed;
@@ -252,18 +299,10 @@ main {
   left: 0;
   width: 100%;
   height: 100%;
-  display: flex;
+  display: none; /* Controlled inline by script */
   align-items: center;
   justify-content: center;
   z-index: 2000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease;
-}
-
-.modal.active {
-  opacity: 1;
-  pointer-events: auto;
 }
 
 .modal-backdrop {
@@ -271,48 +310,48 @@ main {
   width: 100%;
   height: 100%;
   background: rgba(3, 4, 9, 0.85);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
-.player-shell {
+.modal-card, .player-shell {
   position: relative;
   width: 90%;
-  max-width: 1100px;
+  max-width: 1000px;
   background: rgba(10, 12, 26, 0.95);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 20px;
+  border: 1px solid var(--line);
+  border-radius: 18px;
   padding: 24px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 24px 50px rgba(0,0,0,0.6);
   z-index: 10;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
+/* ==========================================================================
+   VIDEO PLAYER LAYOUTS
+   ========================================================================== */
 .video-wrap {
   position: relative;
   width: 100%;
   aspect-ratio: 16/9;
   background: #000;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
-  border: 1px solid var(--panel-border);
+  border: 1px solid var(--line);
+  margin-top: 15px;
 }
 
-iframe, video {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-/* Control Interfaces */
 .video-controls {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
-  padding: 20px;
+  padding: 16px;
   background: linear-gradient(to top, rgba(6,8,20,0.95), rgba(6,8,20,0));
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .progress {
@@ -320,12 +359,11 @@ iframe, video {
   background: rgba(255,255,255,0.1);
   border-radius: 3px;
   cursor: pointer;
-  position: relative;
 }
 
 .progress-filled {
   height: 100%;
-  background: linear-gradient(90deg, var(--accent), var(--cyan));
+  background: linear-gradient(90deg, var(--accent), var(--accent-glow));
   border-radius: 3px;
   width: 0%;
 }
@@ -333,15 +371,16 @@ iframe, video {
 .controls-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .ctrl {
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  color: var(--text-main);
-  padding: 8px 16px;
-  border-radius: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 6px 14px;
+  border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
   transition: all 0.2s ease;
@@ -357,47 +396,51 @@ iframe, video {
    INFO TEXT BLOCKS & FOOTER
    ========================================================================== */
 .info-blocks {
-  margin: 60px 0;
-  background: var(--panel-bg);
-  border: 1px solid var(--panel-border);
-  border-radius: 20px;
-  padding: 40px;
+  margin: 50px 0;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 30px;
 }
 
 .info-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
-  margin-top: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin-top: 20px;
 }
 
 .info-card {
-  background: rgba(255,255,255,0.02);
-  border: 1px solid var(--panel-border);
-  padding: 24px;
-  border-radius: 12px;
+  background: rgba(255,255,255,0.01);
+  border: 1px solid var(--line);
+  padding: 20px;
+  border-radius: 10px;
 }
 
 .info-card h3 {
-  color: var(--cyan);
-  margin-bottom: 8px;
+  color: var(--accent-glow);
+  margin-bottom: 6px;
 }
 
 .site-footer {
-  border-top: 1px solid var(--panel-border);
-  padding: 40px 0;
-  margin-top: 60px;
+  border-top: 1px solid var(--line);
+  padding: 30px 0;
+  margin-top: 50px;
   text-align: center;
   font-size: 0.85rem;
-  color: var(--text-muted);
+  color: var(--muted);
 }
 
 /* ==========================================================================
    RESPONSIVE DESIGN SYSTEM MEDIA QUERIES
    ========================================================================== */
-@media(max-width: 828px) {
+@media(max-width: 828px){
   .main-nav { display: none; }
-  .site-header { top: 10px; }
-  .hero { height: 60vh; padding-bottom: 30px; }
-  .trend-cols { grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; }
+  .trend-cols, .grid { grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 14px; }
+  .hero { height: 60vh; }
+}
+@media(max-width: 520px){
+  .header-inner { gap: 12px; padding: 0 16px; }
+  .row, .trending, .page-head, .filters, .grid { padding-left: 12px; padding-right: 12px; }
+  .hero-content { padding-left: 16px; padding-right: 16px; }
 }
