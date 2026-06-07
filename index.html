@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OnlyFlix — Watch Free HD Movies & TV Shows Online</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="site-header" id="header">
+  <div class="header-inner">
+    <a href="#" class="logo" data-route="home">ONLY<span>FLIX</span></a>
+    <nav class="main-nav">
+      <a href="#" data-route="home" class="active">Home</a>
+      <a href="#" data-route="movie">Movies</a>
+      <a href="#" data-route="series">TV Shows</a>
+      <a href="#" data-route="genres">Genres</a>
+      <a href="#" data-route="years">Years</a>
+    </nav>
+    <div class="search-box">
+      <svg viewBox="0 0 24 24" class="search-icon"><path d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+      <input type="text" id="searchInput" placeholder="Search movies & TV shows…" autocomplete="off">
+    </div>
+  </div>
+</header>
+
+<section class="hero" id="hero">
+  <div class="hero-bg" id="heroBg"></div>
+  <div class="hero-fade"></div>
+  <div class="hero-content" id="heroContent"></div>
+  <div class="hero-dots" id="heroDots"></div>
+</section>
+
+<main id="main"><div id="view"><div class="boot">Loading OnlyFlix…</div></div></main>
+
+<section class="info-blocks" id="infoBlocks">
+  <h2>What is OnlyFlix</h2>
+  <p>OnlyFlix is a free streaming catalog where you can watch the latest movies and TV shows in the best possible quality — no registration, no subscription. Metadata and posters are live from TMDB; the player supports direct MP4, adaptive HLS (.m3u8) and third-party embed sources.</p>
+  <div class="info-grid">
+    <div class="info-card"><h3>» The process is very simple</h3><p>Pick a title, hit Play, and the built-in player loads instantly. Switch source/server, quality, subtitles, or playback speed on the fly.</p></div>
+    <div class="info-card"><h3>» Privacy and data</h3><p>No registration required. We don't store personal data. Cookies are only used to remember your watch history, kept locally in your browser.</p></div>
+    <div class="info-card"><h3>» OnlyFlix and VPN</h3><p>No regional restrictions and VPN-agnostic accessibility — works the same wherever you are.</p></div>
+    <div class="info-card"><h3>» Source resolver</h3><p>Each title resolves to MP4 / HLS / embed sources via a pluggable registry. HLS plays through hls.js with native Safari fallback.</p></div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="footer-inner">
+    <a href="#" class="logo" data-route="home">ONLY<span>FLIX</span></a>
+    <p class="dmca"><strong>DMCA Content Removal Policy.</strong> Demo/educational front-end clone. Metadata © TMDB. Streams shown are public test sources unless real sources are registered. This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+    <p class="copyright">© <span id="year"></span> OnlyFlix Demo · UI clone · Powered by TMDB.</p>
+  </div>
+</footer>
+
+<div class="modal" id="detailModal">
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card" id="detailCard"></div>
+</div>
+
+<div class="modal player-modal" id="playerModal">
+  <div class="modal-backdrop" data-close-player></div>
+  <div class="player-shell">
+    <button class="player-close" data-close-player>&times;</button>
+    <div class="player-title" id="playerTitle"></div>
+    <div class="video-wrap" id="videoWrap">
+      <video id="videoEl" preload="metadata" playsinline></video>
+      <iframe id="embedEl" allowfullscreen allow="autoplay; encrypted-media" style="display:none"></iframe>
+      <div class="video-controls" id="videoControls">
+        <div class="progress" id="progress"><div class="progress-filled" id="progressFilled"></div></div>
+        <div class="controls-row">
+          <button id="btnPlay" class="ctrl">▶</button>
+          <button id="btnBack" class="ctrl" title="Back 10s">⟲</button>
+          <button id="btnFwd" class="ctrl" title="Forward 10s">⟳</button>
+          <div class="volume">
+            <button id="btnMute" class="ctrl">🔊</button>
+            <input type="range" id="volSlider" min="0" max="1" step="0.05" value="1">
+          </div>
+          <span class="time" id="timeLabel">0:00 / 0:00</span>
+          <div class="spacer"></div>
+          <div class="select-wrap">
+            <label>Server / Source</label>
+            <select id="sourceSel"></select>
+          </div>
+          <div class="select-wrap">
+            <label>Speed</label>
+            <select id="speedSel">
+              <option value="0.5">0.5×</option><option value="0.75">0.75×</option>
+              <option value="1" selected>1×</option><option value="1.25">1.25×</option>
+              <option value="1.5">1.5×</option><option value="2">2×</option>
+            </select>
+          </div>
+          <div class="select-wrap">
+            <label>Subtitles</label>
+            <select id="subSel"><option value="off" selected>Off</option><option value="en">English</option><option value="es">Español</option></select>
+          </div>
+          <button id="btnFull" class="ctrl" title="Fullscreen">⛶</button>
+        </div>
+      </div>
+    </div>
+    <div class="player-note" id="playerNote"></div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<script src="config.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
