@@ -373,6 +373,57 @@ const FRAMED=(()=>{try{return window.self!==window.top;}catch(e){return true;}})
 const vEl=()=>$("#videoEl"), ifrEl=()=>$("#embedEl");
 function destroyHls(){ if(hlsInstance){try{hlsInstance.destroy()}catch(e){} hlsInstance=null;} }
 
+/* ============================================================
+   SOURCE PROBE — auto-detect dead servers and hide them.
+
+   What this catches:
+     - DNS failure / connection refused
+     - Browser-blocked requests (ad-blockers, CSP, mixed content)
+     - Timeouts (>4.5s with no response)
+   What this does NOT catch:
+     - Server returns 200 OK but renders "unavailable" inside the iframe.
+       Cross-origin iframes are opaque — we can't read their content.
+       (Needs a server-side proxy to inspect HTML for that case.)
+   ============================================================ */
+const PROBE_TIMEOUT_MS   = 4500;
+const PROBE_CACHE_TTL_MS = 10 * 60 * 1000; // 10 min
+const _probeCache = {}; // url -> { ok, ts }
+
+function probeSource(src, parentSignal){
+  const cached = _probeCache[src.url];
+  if (cached && (Date.now() - cached.ts) < PROBE_CACHE_TTL_MS) {
+    return Promise.resolve(cached.ok);
+  }
+  return new Promise(resolve => {
+    const ctrl  = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), PROBE_TIMEOUT_MS);
+    if (parentSignal) parentSignal.addEventListener("abort", () => ctrl.abort(), { once: true });
+
+    // no-cors HEAD: opaque response, status unreadable, but the fetch promise
+    // rejects on network-level failure (DNS, refused, timeout, blocked).
+    fetch(src.url, { method: "HEAD", mode: "no-cors", signal: ctrl.signal, redirect: "follow" })
+      .then(() => {
+        clearTimeout(timer);
+        _probeCache[src.url] = { ok: true, ts: Date.now() };
+        resolve(true);
+      })
+      .catch(() => {
+        clearTimeout(timer);
+        // don't cache as dead if we aborted because the parent session ended
+        if (!parentSignal || !parentSignal.aborted) {
+          _probeCache[src.url] = { ok: false, ts: Date.now() };
+        }
+        resolve(false);
+      });
+  });
+}
+
+// Manual cache nuke for the console / debug button if you want to force re-probe.
+window.clearProbeCache = () => { for (const k in _probeCache) delete _probeCache[k]; };
+
+function sourceTag(s){ return s.type === 'embed' ? 'embed' : s.type === 'hls' ? 'HLS' : 'MP4'; }
+function sourceLabel(s, status){ return `${s.label} · ${sourceTag(s)}${status ? ' · ' + status : ''}`; }
+
 // SOURCE ENGINE: `resolveSources` is provided by config.js.
 // (Removed the local 5-source stub — it was shadowing the real 10-server
 //  registry whenever script load order changed.)
@@ -381,22 +432,76 @@ function openPlayer(id,season,episode){
   const it=byId(id); if(!it) return;
   pushHistory(it);
   clearInterval(heroTimer);
+
+  // Abort any in-flight probes from a previous player session.
+  if (PLAYER_CTX && PLAYER_CTX.probeAbort) PLAYER_CTX.probeAbort.abort();
+
   const trackId=(season&&episode)?`${id}-S${season}E${episode}`:id;
-  PLAYER_CTX={item:it,season:season?+season:null,episode:episode?+episode:null,trackId};
+  PLAYER_CTX={
+    item:it,
+    season:season?+season:null,
+    episode:episode?+episode:null,
+    trackId,
+    userChoseSource:false,
+    probeAbort:new AbortController(),
+  };
   const epTxt=(season&&episode)?` · S${season}·E${episode}`:(it.type==='series'?' · S1·E1':'');
   $("#playerTitle").textContent=it.title+epTxt;
 
   const sources=resolveSources(it,PLAYER_CTX.season,PLAYER_CTX.episode);
-  const sel=$("#sourceSel");
-  sel.innerHTML=sources.map((s,i)=>`<option value="${i}">${h(s.label)}${s.type==='embed'?' · embed':s.type==='hls'?' · HLS':' · MP4'}</option>`).join("");
-  sel.onchange=()=>loadSource(sources[+sel.value]);
-  $("#playerModal").classList.add("open"); document.body.style.overflow="hidden";
   PLAYER_CTX.sources=sources;
+  const sel=$("#sourceSel");
 
-  let defIdx=0;
-  if(FRAMED){ const demoIdx=sources.findIndex(s=>s.type!=="embed"); if(demoIdx!==-1) defIdx=demoIdx; }
+  // Initial render — every source marked "checking…" while probes run.
+  sel.innerHTML=sources.map((s,i)=>{
+    const cached=_probeCache[s.url];
+    const status=(cached && (Date.now()-cached.ts)<PROBE_CACHE_TTL_MS)
+      ? (cached.ok ? null : 'unreachable')
+      : 'checking…';
+    return `<option value="${i}"${cached && !cached.ok ? ' disabled' : ''}>${h(sourceLabel(s,status))}</option>`;
+  }).join("");
+  sel.onchange=()=>{
+    PLAYER_CTX.userChoseSource=true;
+    loadSource(sources[+sel.value]);
+  };
+  $("#playerModal").classList.add("open"); document.body.style.overflow="hidden";
+
+  // Pick the initial source — prefer first not-yet-known-dead one,
+  // skipping embeds when sandboxed in a preview frame.
+  const isPlayable = (s,i)=>{ const c=_probeCache[s.url]; return !c || c.ok; };
+  let defIdx = sources.findIndex(isPlayable);
+  if (defIdx === -1) defIdx = 0;
+  if (FRAMED) {
+    const demoIdx = sources.findIndex((s,i)=>s.type!=="embed" && isPlayable(s,i));
+    if (demoIdx !== -1) defIdx = demoIdx;
+  }
   sel.value=String(defIdx);
   loadSource(sources[defIdx]);
+
+  // Fire probes in parallel. As each resolves, update its dropdown option.
+  // If the currently-loaded source turns out to be dead and the user hasn't
+  // manually picked anything yet, auto-switch to the next live one.
+  sources.forEach((src,i)=>{
+    probeSource(src, PLAYER_CTX.probeAbort.signal).then(ok=>{
+      // Player may have been closed or a different title opened mid-probe.
+      if (!PLAYER_CTX || PLAYER_CTX.sources !== sources) return;
+      const opt = sel.options[i];
+      if (!opt) return;
+      opt.textContent = sourceLabel(src, ok ? null : 'unreachable');
+      opt.disabled = !ok;
+
+      if (!ok && +sel.value === i && !PLAYER_CTX.userChoseSource) {
+        const next = Array.from(sel.options).find(o => !o.disabled);
+        if (next) {
+          sel.value = next.value;
+          loadSource(sources[+next.value]);
+        } else {
+          // All sources confirmed dead. Show a clear note.
+          $("#playerNote").innerHTML = `⚠️ No reachable servers for <strong>${h(it.title)}</strong>. This title may not be indexed by any of the public embed providers.`;
+        }
+      }
+    });
+  });
 }
 
 function loadSource(src){
@@ -437,6 +542,8 @@ function loadSource(src){
 
 function closePlayer(){
   const v=vEl(), ifr=ifrEl();
+  // Abort any still-running probes from this session.
+  if (PLAYER_CTX && PLAYER_CTX.probeAbort) PLAYER_CTX.probeAbort.abort();
   // FIX: flush current progress on close so we don't lose the last few seconds.
   if(PLAYER_CTX && PLAYER_CTX.trackId && !isNaN(v.currentTime) && v.currentTime>5){
     saveProgress(PLAYER_CTX.trackId, v.currentTime);
