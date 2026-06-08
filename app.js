@@ -26,9 +26,6 @@ const saveProgress = (id,time) => { try { const p=getProgress(); p[id]=time; loc
 const clearProgress = (id) => { try { const p=getProgress(); delete p[id]; localStorage.setItem(PKEY,JSON.stringify(p)); } catch(e) {} };
 
 /* ---------- XSS helper ---------- */
-// FIX #14: sanitise any user-supplied string before injecting into innerHTML.
-// Only used for content that originates from user input (e.g. search query).
-// TMDB data is treated as trusted (risk is extremely low; TMDB sanitises on their end).
 function escapeHTML(str){
   return String(str)
     .replace(/&/g,"&amp;")
@@ -82,8 +79,6 @@ function setHero(i){
 }
 function restartHeroTimer(){clearInterval(heroTimer);heroTimer=setInterval(()=>setHero((heroIdx+1)%heroItems.length),6500);}
 
-// FIX #8: initHero now accepts pre-fetched trending data so renderHome() and
-// initHero() share a single api.trendingAll() call instead of making two.
 async function initHero(trendData){
   heroItems=(trendData||[]).filter(x=>x.backdrop&&x.overview).slice(0,6);
   $("#heroDots").innerHTML=heroItems.map((_,i)=>`<span data-i="${i}"></span>`).join("");
@@ -92,12 +87,9 @@ async function initHero(trendData){
 }
 
 /* ---------- TRENDING board ---------- */
-// FIX #1: replaced direct tmdb()/normList() calls with api.* equivalents so
-// the PERIOD table doesn't silently depend on cross-file globals.
-// "24h" day-trending isn't exposed on api, so added two thin wrappers here.
 const PERIOD = {
   "24h": {
-    movie:  ()=>api.trendingMovies(),  // closest public equivalent; swap for /trending/movie/day if api exposes it
+    movie:  ()=>api.trendingMovies(),  
     series: ()=>api.trendingTV(),
   },
   "7d":  { movie:()=>api.trendingMovies(), series:()=>api.trendingTV() },
@@ -142,13 +134,11 @@ async function renderHome(){
   $("#hero").style.display="flex"; $("#infoBlocks").classList.add("show");
   $("#view").innerHTML='<div class="boot">Loading…</div>';
 
-  // FIX #8: fetch trendingAll once and share with initHero to eliminate duplicate request.
   const [trend,nowp,topm,popt,topt]=await Promise.all([
     api.trendingAll(),api.nowPlaying(),api.topMovies(),api.popularTV(),api.topTV()
   ]);
   [trend,nowp,topm,popt,topt].forEach(indexItems);
 
-  // Pass the already-fetched trend data into initHero (no second fetch)
   await initHero(trend);
 
   const hist=getHistory(); hist.forEach(h=>INDEX[h.id]=h);
@@ -157,8 +147,6 @@ async function renderHome(){
   html+=rowHTML("Trending Now",trend,'movie');
   html+=rowHTML("Now Playing in Theaters",nowp,'movie');
   html+=rowHTML("Top Rated Movies",topm,'movie');
-  // FIX #2: TV rows now correctly route to 'series', not 'movie'.
-  // Previously both TV rows used route:'movie', sending users to the Movies grid.
   html+=rowHTML("Popular TV Shows",popt,'series');
   html+=rowHTML("Top Rated TV Shows",topt,'series');
   html+=await buildTrending();
@@ -169,8 +157,6 @@ async function renderHome(){
 
 /* ---------- GRID (Movies / TV) ---------- */
 let gridState={};
-// FIX: in-flight guard prevents concurrent loadGridPage() calls (e.g. rapid Load More clicks)
-// from corrupting gridState.page or appending duplicate items.
 let gridLoading=false;
 
 async function renderGrid(type){
@@ -204,7 +190,6 @@ function resetGrid(){
   loadGridPage(true);
 }
 async function loadGridPage(fresh=false){
-  // FIX: guard against concurrent calls (rapid Load More clicks)
   if(gridLoading) return;
   gridLoading=true;
   try{
@@ -226,7 +211,6 @@ async function renderGenres(){
   $("#hero").style.display="none"; $("#infoBlocks").classList.remove("show");
   $("#view").innerHTML=`<div class="page-head"><h1>Browse by Genre</h1></div><div id="gwrap"><div class="boot">Loading…</div></div>`;
   const picks=ALL_GENRES.slice(0,10);
-  // FIX: individual row failures are caught so one failed genre doesn't blank the whole page.
   const rows=await Promise.all(picks.map(async g=>{
     try{
       const items=await api.byGenreRow("movie",g.id); indexItems(items);
@@ -241,7 +225,6 @@ async function renderYears(){
   $("#hero").style.display="none"; $("#infoBlocks").classList.remove("show");
   const years=[]; for(let y=new Date().getFullYear();y>=new Date().getFullYear()-9;y--) years.push(y);
   $("#view").innerHTML=`<div class="page-head"><h1>Browse by Year</h1></div><div id="ywrap"><div class="boot">Loading…</div></div>`;
-  // FIX: individual year failures are caught so one failed year doesn't wipe the whole page.
   const rows=await Promise.all(years.map(async y=>{
     try{
       const {items}=await api.discover("movie",{year:y,sort:"popularity.desc",page:1}); indexItems(items);
@@ -254,19 +237,14 @@ async function renderYears(){
 /* ---------- SEARCH ---------- */
 async function renderSearch(q){
   $("#hero").style.display="none"; $("#infoBlocks").classList.remove("show");
-  // FIX #14: escape user-supplied query before injecting into innerHTML to prevent XSS.
   const safeQ=escapeHTML(q);
   $("#view").innerHTML=`<div class="page-head"><h1>Search: "${safeQ}"</h1></div><div class="grid" id="sgrid"><div class="boot">Searching…</div></div>`;
   const items=await api.search(q); indexItems(items);
-  // FIX #14: use safeQ in the "no results" message too.
   $("#sgrid").innerHTML=items.length?items.map(cardHTML).join(""):`<div class="empty">No results for "${safeQ}".</div>`;
 }
 
 /* ---------- ROUTER ---------- */
 function route(name){
-  // FIX #3: always stop the hero timer when leaving the home view.
-  // Previously only done in route(), but detail/player modals left the timer running,
-  // causing setHero() to keep mutating DOM behind open modals.
   clearInterval(heroTimer);
   $$(".main-nav a").forEach(a=>a.classList.toggle("active",a.dataset.route===name));
   window.scrollTo({top:0});
@@ -280,7 +258,6 @@ function route(name){
 /* ---------- DETAIL ---------- */
 async function openDetail(id){
   const stub=byId(id); if(!stub)return;
-  // FIX #3: pause hero cycling while detail modal is open.
   clearInterval(heroTimer);
   $("#detailCard").innerHTML=`<button class="detail-close" data-close>&times;</button><div class="boot" style="padding:80px">Loading…</div>`;
   $("#detailModal").classList.add("open"); document.body.style.overflow="hidden";
@@ -307,7 +284,7 @@ async function openDetail(id){
         ${(it.genres||[]).map(g=>`<span class="tag">${g}</span>`).join("")}
       </div>
       <p class="ov">${it.overview}</p>
-      ${it.cast&&it.cast.length?`<p class="cast"><strong>Cast:</strong> ${it.cast.join(", ")}</p>`:''}
+      ${it.cast&&it.cast.length?`<p class="cast"><strong>Cast:</strong> ${it.cast.join(", ")}</p>`:strong>''}
       <div class="detail-actions">
         <button class="btn btn-play" data-play="${it.id}">▶ Play${it.type==='series'?' S1·E1':''}</button>
         <button class="btn btn-info" data-close>Close</button>
@@ -333,33 +310,71 @@ async function openDetail(id){
 function closeDetail(){
   $("#detailModal").classList.remove("open");
   if(!$("#playerModal").classList.contains("open")) document.body.style.overflow="";
-  // FIX #3: resume hero timer when returning to home (only if hero is visible)
   if($("#hero").style.display!=="none") restartHeroTimer();
 }
 
 /* ============================================================
-   PLAYER — mp4 / hls / embed with source resolver
+   PLAYER — Sources Resolver & Embed Controller
    ============================================================ */
 let hlsInstance=null, PLAYER_CTX=null;
 const FRAMED=(()=>{try{return window.self!==window.top;}catch(e){return true;}})();
 const vEl=()=>$("#videoEl"), ifrEl=()=>$("#embedEl");
 function destroyHls(){ if(hlsInstance){try{hlsInstance.destroy()}catch(e){} hlsInstance=null;} }
 
+// SOURCE ENGINE FIX: Replaces the broken domain with multi-provider fallbacks
+function resolveSources(it, season, episode) {
+  const tmdbId = it.tmdbId;
+  const isTV = it.type === 'series';
+  const s = season || 1;
+  const e = episode || 1;
+
+  // Formulate absolute dynamic target variables for live mirrors
+  const vidsrcxyzUrl = isTV 
+    ? `https://vidsrc.xyz/embed/tv/${tmdbId}/${s}/${e}`
+    : `https://vidsrc.xyz/embed/movie/${tmdbId}`;
+
+  const embedsuUrl = isTV
+    ? `https://embed.su/embed/tv/${tmdbId}/${s}/${e}`
+    : `https://embed.su/embed/movie/${tmdbId}`;
+
+  const vidsrctoUrl = isTV
+    ? `https://vidsrc.to/embed/tv/${tmdbId}/${s}/${e}`
+    : `https://vidsrc.to/embed/movie/${tmdbId}`;
+
+  return [
+    { label: "Primary Server (VidSrc)", type: "embed", url: vidsrcxyzUrl },
+    { label: "Super Server (Embed.su)", type: "embed", url: embedsuUrl },
+    { label: "Mirror Server (VidSrc.to)", type: "embed", url: vidsrctoUrl },
+    { 
+      label: "Demo Backup (MP4 Stream)", 
+      type: "mp4", 
+      url: "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" 
+    },
+    {
+      label: "Demo Backup (Adaptive HLS)",
+      type: "hls",
+      url: "https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8"
+    }
+  ];
+}
+
 function openPlayer(id,season,episode){
   const it=byId(id); if(!it)return;
   pushHistory(it);
-  // FIX #3: stop hero timer while player is open
   clearInterval(heroTimer);
   const trackId=(season&&episode)?`${id}-S${season}E${episode}`:id;
   PLAYER_CTX={item:it,season:season?+season:null,episode:episode?+episode:null,trackId};
   const epTxt=(season&&episode)?` · S${season}·E${episode}`:(it.type==='series'?' · S1·E1':'');
   $("#playerTitle").textContent=it.title+epTxt;
+  
+  // Resolve streaming array options cleanly
   const sources=resolveSources(it,PLAYER_CTX.season,PLAYER_CTX.episode);
   const sel=$("#sourceSel");
   sel.innerHTML=sources.map((s,i)=>`<option value="${i}">${s.label}${s.type==='embed'?' · embed':s.type==='hls'?' · HLS':' · MP4'}</option>`).join("");
   sel.onchange=()=>loadSource(sources[+sel.value]);
   $("#playerModal").classList.add("open"); document.body.style.overflow="hidden";
   PLAYER_CTX.sources=sources;
+  
   let defIdx=0;
   if(FRAMED){ const demoIdx=sources.findIndex(s=>s.type!=="embed"); if(demoIdx!==-1) defIdx=demoIdx; }
   sel.value=String(defIdx);
@@ -406,7 +421,6 @@ function closePlayer(){
   ifr.removeAttribute("src");
   $("#playerModal").classList.remove("open");
   if(!$("#detailModal").classList.contains("open")) document.body.style.overflow="";
-  // FIX #3: resume hero timer if hero is visible and no other modal is open
   if($("#hero").style.display!=="none"&&!$("#detailModal").classList.contains("open")) restartHeroTimer();
 }
 
@@ -462,7 +476,7 @@ window.addEventListener("scroll",()=>$("#header").classList.toggle("scrolled",wi
   bindPlayer();
   try{
     await loadGenres();
-    await renderHome(); // initHero() is called inside renderHome() with shared data now
+    await renderHome();
   }catch(e){
     $("#view").innerHTML=`<div class="empty">Failed to load TMDB data: ${e.message}. Check the API key / network.</div>`;
   }
