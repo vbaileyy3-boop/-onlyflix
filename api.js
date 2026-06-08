@@ -1,28 +1,44 @@
 /* ============================================================
-   api.js — TMDB live data client (FIXED)
+   api.js — TMDB live data client (FIXED v2)
    ============================================================ */
 const GENRE_MAP = {};
 let ALL_GENRES = [];
 
-async function tmdb(path, params = {}) {
+async function tmdb(path, params = {}, _retry = 0) {
   const url = new URL(TMDB.BASE + path);
   url.searchParams.set("api_key", TMDB.KEY);
-  Object.entries(params).forEach(([k, v]) => v != null && url.searchParams.set(k, v));
+  // FIX: also skip empty strings, not just null/undefined.
+  Object.entries(params).forEach(([k, v]) => {
+    if (v == null) return;
+    if (typeof v === "string" && v === "") return;
+    url.searchParams.set(k, v);
+  });
+
   const r = await fetch(url);
+
+  // FIX: handle 429 rate limit with Retry-After header (max 2 retries).
+  if (r.status === 429 && _retry < 2) {
+    const wait = (+r.headers.get("retry-after") || 1) * 1000;
+    await new Promise(res => setTimeout(res, wait));
+    return tmdb(path, params, _retry + 1);
+  }
+
   if (!r.ok) throw new Error("TMDB " + r.status + " " + path);
   return r.json();
 }
 
-// FIX #5: loadGenres now catches and re-throws so callers know when genres
-// failed to load, rather than silently leaving GENRE_MAP empty forever.
+// FIX #5 (v2): use try/catch instead of the brittle .catch+rethrow chain.
 async function loadGenres() {
-  const [m, t] = await Promise.all([
-    tmdb("/genre/movie/list"),
-    tmdb("/genre/tv/list"),
-  ]).catch(err => {
+  let m, t;
+  try {
+    [m, t] = await Promise.all([
+      tmdb("/genre/movie/list"),
+      tmdb("/genre/tv/list"),
+    ]);
+  } catch (err) {
     console.error("[api] loadGenres failed:", err);
-    throw err; // re-throw so the caller can show an error state
-  });
+    throw err;
+  }
   [...m.genres, ...t.genres].forEach(g => (GENRE_MAP[g.id] = g.name));
   const seen = {};
   ALL_GENRES = [...m.genres, ...t.genres]
@@ -31,9 +47,10 @@ async function loadGenres() {
 }
 
 function norm(x) {
-  // FIX #1: prefer explicit media_type from TMDB over the name/title heuristic.
-  // The heuristic (has name but no title → TV) is unreliable for /search/multi
-  // results where both fields can co-exist. media_type is authoritative when present.
+  // FIX: explicitly drop persons. They have no title/poster semantics
+  // matching movies/series and would render as garbage.
+  if (x.media_type === "person") return null;
+
   const isTV =
     x.media_type === "tv" ||
     (x.media_type == null && x.name != null && x.title == null);
@@ -41,8 +58,6 @@ function norm(x) {
   const date = x.release_date || x.first_air_date || "";
   const genres = (x.genre_ids || []).map(id => GENRE_MAP[id]).filter(Boolean);
 
-  // FIX #2: guard against malformed date strings shorter than 4 chars
-  // (e.g. "20" would parse as year 20). Require exactly 4 leading digits.
   const yearStr = date.slice(0, 4);
   const year = /^\d{4}$/.test(yearStr) ? +yearStr : null;
 
@@ -66,20 +81,12 @@ function norm(x) {
   };
 }
 
-// FIX #3: normList no longer silently drops posterless items.
-// Items without a poster are kept in the list with poster:null so the UI
-// can render a placeholder instead of mysteriously short result sets.
-// If you still want to filter them, swap the body back to:
-//   return (arr || []).map(norm).filter(x => x.poster);
+// FIX #3 (v2): also drop nulls returned by norm() (persons).
 function normList(arr) {
-  return (arr || []).map(norm);
+  return (arr || []).map(norm).filter(Boolean);
 }
 
 const api = {
-  // FIX #6: all public methods now have a .catch() so rejections surface
-  // as a rejected promise that callers can handle, rather than as silent
-  // unhandled rejections. Each catch logs and re-throws.
-
   trendingMovies: () =>
     tmdb("/trending/movie/week")
       .then(d => normList(d.results))
@@ -90,6 +97,7 @@ const api = {
       .then(d => normList(d.results))
       .catch(err => { console.error("[api] trendingTV:", err); throw err; }),
 
+  // FIX: trending/all/day includes persons — normList now filters them out.
   trendingAll: () =>
     tmdb("/trending/all/day")
       .then(d => normList(d.results))
@@ -120,18 +128,16 @@ const api = {
       .then(d => normList(d.results))
       .catch(err => { console.error("[api] topTV:", err); throw err; }),
 
+  // FIX: guard d.results (TMDB sometimes returns an error payload without it),
+  // and let normList drop persons instead of duplicating the filter here.
   search: (q, p = 1) =>
     tmdb("/search/multi", { query: q, page: p })
-      .then(d => normList(d.results.filter(r => r.media_type !== "person")))
+      .then(d => normList(d.results))
       .catch(err => { console.error("[api] search:", err); throw err; }),
 
-  // FIX #4: sanitise `sort` before sending to the API.
-  // Destructuring defaults only fire for `undefined`, not for empty string "".
-  // A caller passing sort:"" would send sort_by:"" to TMDB, likely causing
-  // a 422 or unexpected ordering. Normalise falsy values to the default here.
   discover: (type, { genre, year, sort = "popularity.desc", page = 1 } = {}) => {
     const isTV = type === "series";
-    const safeSort = sort || "popularity.desc"; // guard against sort:""
+    const safeSort = sort || "popularity.desc";
     const params = { sort_by: safeSort, page, "vote_count.gte": 30 };
     if (genre && genre !== "all") params.with_genres = genre;
     if (year && year !== "all")
@@ -158,33 +164,32 @@ const api = {
       append_to_response: "credits,videos",
     });
 
-    // FIX #7: pass genre_ids directly instead of relying on norm() to do a
-    // GENRE_MAP lookup that we immediately overwrite anyway. This makes the
-    // intent clear and avoids a wasted lookup if GENRE_MAP failed to load.
     const base = norm({
       ...d,
       media_type: isTV ? "tv" : "movie",
       genre_ids: (d.genres || []).map(g => g.id),
     });
 
-    // Overwrite with full genre names from the detail response (authoritative).
     base.genres = (d.genres || []).map(g => g.name);
     base.runtime = isTV ? null : d.runtime;
     base.tagline = d.tagline || "";
     base.cast = (d.credits?.cast || []).slice(0, 6).map(c => c.name);
 
+    // FIX: expose trailer key if available — you appended videos but never used them.
+    const trailer = (d.videos?.results || []).find(
+      v => v.site === "YouTube" && v.type === "Trailer"
+    );
+    base.trailerKey = trailer?.key || null;
+
     if (isTV) {
       base.seasons = (d.seasons || []).filter(s => s.season_number > 0);
-
-      // FIX #8: use ?? instead of || so that a legitimate value of 0
-      // (a cancelled show with no numbered seasons) is not incorrectly
-      // replaced by the fallback. || treats 0 as falsy.
       const numSeasons =
-        d.number_of_seasons ?? base.seasons[base.seasons.length - 1]?.season_number ?? 1;
+        d.number_of_seasons ??
+        base.seasons[base.seasons.length - 1]?.season_number ??
+        1;
       base.lastSeason = numSeasons;
       base.latest = `${numSeasons} season${numSeasons !== 1 ? "s" : ""}`;
     }
-
     return base;
   },
 
