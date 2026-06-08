@@ -58,6 +58,7 @@ function norm(x) {
   const date = x.release_date || x.first_air_date || "";
   const genres = (x.genre_ids || []).map(id => GENRE_MAP[id]).filter(Boolean);
 
+  // FIX #2: guard against malformed date strings shorter than 4 chars.
   const yearStr = date.slice(0, 4);
   const year = /^\d{4}$/.test(yearStr) ? +yearStr : null;
 
@@ -92,10 +93,22 @@ const api = {
       .then(d => normList(d.results))
       .catch(err => { console.error("[api] trendingMovies:", err); throw err; }),
 
+  // NEW: /trending/movie/day for the 24h tab.
+  trendingMoviesDay: () =>
+    tmdb("/trending/movie/day")
+      .then(d => normList(d.results))
+      .catch(err => { console.error("[api] trendingMoviesDay:", err); throw err; }),
+
   trendingTV: () =>
     tmdb("/trending/tv/week")
       .then(d => normList(d.results))
       .catch(err => { console.error("[api] trendingTV:", err); throw err; }),
+
+  // NEW: /trending/tv/day for the 24h tab.
+  trendingTVDay: () =>
+    tmdb("/trending/tv/day")
+      .then(d => normList(d.results))
+      .catch(err => { console.error("[api] trendingTVDay:", err); throw err; }),
 
   // FIX: trending/all/day includes persons — normList now filters them out.
   trendingAll: () =>
@@ -135,6 +148,7 @@ const api = {
       .then(d => normList(d.results))
       .catch(err => { console.error("[api] search:", err); throw err; }),
 
+  // FIX #4: sanitise `sort` before sending to the API.
   discover: (type, { genre, year, sort = "popularity.desc", page = 1 } = {}) => {
     const isTV = type === "series";
     const safeSort = sort || "popularity.desc";
@@ -170,12 +184,13 @@ const api = {
       genre_ids: (d.genres || []).map(g => g.id),
     });
 
-    base.genres = (d.genres || []).map(g => g.name);
+    // Overwrite with full genre names from the detail response (authoritative).
+    base.genres  = (d.genres || []).map(g => g.name);
     base.runtime = isTV ? null : d.runtime;
     base.tagline = d.tagline || "";
-    base.cast = (d.credits?.cast || []).slice(0, 6).map(c => c.name);
+    base.cast    = (d.credits?.cast || []).slice(0, 6).map(c => c.name);
 
-    // FIX: expose trailer key if available — you appended videos but never used them.
+    // FIX: expose YouTube trailer if available — you appended videos but never used them.
     const trailer = (d.videos?.results || []).find(
       v => v.site === "YouTube" && v.type === "Trailer"
     );
@@ -183,6 +198,7 @@ const api = {
 
     if (isTV) {
       base.seasons = (d.seasons || []).filter(s => s.season_number > 0);
+      // FIX #8: ?? instead of || so a legit 0 isn't replaced by fallback.
       const numSeasons =
         d.number_of_seasons ??
         base.seasons[base.seasons.length - 1]?.season_number ??
