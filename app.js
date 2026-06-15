@@ -1,5 +1,5 @@
 /* ============================================================
-   app.js — OnlyFlix UI (TMDB live) + multi-format player (FIXED v4)
+   app.js — OnlyFlix UI (TMDB live) + multi-format player (FIXED v5)
    ============================================================
    Changes vs v2:
    - openDetail: "Play S1·E1" button now passes the correct starting
@@ -31,6 +31,11 @@ function pushHistory(it){
   h.unshift({id:it.id,type:it.type,tmdbId:it.tmdbId,title:it.title,poster:it.poster,backdrop:it.backdrop,year:it.year,rating:it.rating,genres:it.genres||[],overview:it.overview});
   h=h.slice(0,18);
   try{ localStorage.setItem(HKEY,JSON.stringify(h)); }catch(e){ console.error("History write blocked",e); }
+}
+function removeHistory(id){
+  const h=getHistory().filter(x=>x.id!==id);
+  try{ localStorage.setItem(HKEY,JSON.stringify(h)); }catch(e){ console.error("History write blocked",e); }
+  return h;
 }
 
 /* ---------- playback progress memory ---------- */
@@ -72,6 +77,29 @@ function rowHTML(title,items,route){
   return `<div class="row">
     <div class="row-head"><h2>${h(title)}</h2>${route?`<span class="more" data-route="${h(route)}">View all →</span>`:''}</div>
     <div class="row-scroll">${items.map(cardHTML).join("")}</div>
+  </div>`;
+}
+
+/* ---- Continue Watching row: cards carry a remove (×) button ---- */
+function continueCardHTML(it){
+  indexItems([it]);
+  const genre = it.genres && it.genres[0] ? ' · ' + h(it.genres[0]) : '';
+  return `<div class="card cw-card" data-id="${h(it.id)}">
+    <div class="poster" style="${posterBg(it)}">
+      <span class="badge-type">${it.type==='series'?'TV':'Movie'}</span>
+      ${it.rating?`<span class="badge-rating">★ ${it.rating}</span>`:''}
+      <button class="cw-remove" data-remove="${h(it.id)}" title="Remove from Continue Watching" aria-label="Remove">×</button>
+      <div class="play-ico"><div>▶</div></div>
+    </div>
+    <div class="card-sub">${h(it.title)}</div>
+    <div class="card-sub2">${it.year||''}${genre}</div>
+  </div>`;
+}
+function continueRowHTML(items){
+  if(!items || !items.length) return "";
+  return `<div class="row" id="cwRow">
+    <div class="row-head"><h2>Continue Watching</h2></div>
+    <div class="row-scroll">${items.map(continueCardHTML).join("")}</div>
   </div>`;
 }
 
@@ -179,7 +207,7 @@ async function renderHome(){
 
   const hist=getHistory(); hist.forEach(hh=>INDEX[hh.id]=hh);
   let html="";
-  if(hist.length) html+=rowHTML("Continue Watching",hist);
+  if(hist.length) html+=continueRowHTML(hist);
   html+=rowHTML("Trending Now",trend,'movie');
   html+=rowHTML("Now Playing in Theaters",nowp,'movie');
   html+=rowHTML("Top Rated Movies",topm,'movie');
@@ -586,6 +614,14 @@ function bindPlayer(){
 
 /* ---------- delegated clicks ---------- */
 document.addEventListener("click",e=>{
+  const rm=e.target.closest("[data-remove]");
+  if(rm){
+    e.preventDefault(); e.stopPropagation();
+    const remaining=removeHistory(rm.dataset.remove);
+    const card=rm.closest(".card"); if(card) card.remove();
+    if(!remaining.length){ const row=$("#cwRow"); if(row) row.remove(); }
+    return;
+  }
   const r=e.target.closest("[data-route]");      if(r){e.preventDefault();route(r.dataset.route);return;}
   const play=e.target.closest("[data-play]");    if(play){e.preventDefault();openPlayer(play.dataset.play,play.dataset.s,play.dataset.e);return;}
   const det=e.target.closest("[data-detail]");   if(det){e.preventDefault();openDetail(det.dataset.detail);return;}
