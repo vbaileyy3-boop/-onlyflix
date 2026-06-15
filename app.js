@@ -1,5 +1,12 @@
 /* ============================================================
-   app.js — OnlyFlix UI (TMDB live) + multi-format player (FIXED v2)
+   app.js — OnlyFlix UI (TMDB live) + multi-format player (FIXED v3)
+   ============================================================
+   Changes vs v2:
+   - openDetail: "Play S1·E1" button now passes the correct starting
+     season from SEASON_DEFAULTS (config.js) instead of always S1.
+   - openDetail: seasonSel now pre-selects the SEASON_DEFAULTS season
+     so the episode list loads the right season on first open.
+   - Both fixes share the same helper: defaultSeasonFor(tmdbId).
    ============================================================ */
 const $  = (s,r=document)=>r.querySelector(s);
 const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
@@ -8,6 +15,13 @@ const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
 const INDEX = {};
 function indexItems(arr){ (arr||[]).forEach(it=>{ if(it&&it.id) INDEX[it.id]=it; }); return arr; }
 function byId(id){ return INDEX[id]; }
+
+/* ---- helper: look up SEASON_DEFAULTS from config.js ---- */
+function defaultSeasonFor(tmdbId){
+  return (typeof SEASON_DEFAULTS !== "undefined" && SEASON_DEFAULTS[tmdbId])
+    ? SEASON_DEFAULTS[tmdbId]
+    : 1;
+}
 
 /* ---------- watch history ---------- */
 const HKEY="onlyflix_history";
@@ -34,7 +48,7 @@ function escapeHTML(str){
     .replace(/"/g,"&quot;")
     .replace(/'/g,"&#39;");
 }
-const h = escapeHTML; // shorthand used throughout templates
+const h = escapeHTML;
 
 /* ---------- card / row render ---------- */
 function posterBg(it){ return it.poster ? `background-image:url('${it.poster}')` : `background:#1a1a24`; }
@@ -96,7 +110,6 @@ async function initHero(trendData){
 }
 
 /* ---------- TRENDING board ---------- */
-// FIX: 24h now actually maps to /trending/*/day (requires api.trendingMoviesDay / trendingTVDay).
 const PERIOD = {
   "24h": { movie: ()=>api.trendingMoviesDay(), series: ()=>api.trendingTVDay() },
   "7d":  { movie: ()=>api.trendingMovies(),    series: ()=>api.trendingTV()    },
@@ -118,7 +131,6 @@ function trendListHTML(items){
   }).join("");
 }
 async function buildTrending(){
-  // FIX: resilient — if one side fails, other still renders.
   const settled=await Promise.allSettled([PERIOD["24h"].movie(),PERIOD["24h"].series()]);
   const [m,t]=settled.map(r=>r.status==="fulfilled"?r.value:[]);
   return `<div class="trending">
@@ -157,7 +169,6 @@ async function renderHome(){
   $("#hero").style.display="flex"; $("#infoBlocks").classList.add("show");
   $("#view").innerHTML='<div class="boot">Loading…</div>';
 
-  // FIX: allSettled — survive partial API failures so one bad endpoint doesn't kill the home page.
   const settled=await Promise.allSettled([
     api.trendingAll(), api.nowPlaying(), api.topMovies(), api.popularTV(), api.topTV()
   ]);
@@ -193,7 +204,6 @@ async function renderGrid(type){
   gridLoading=false;
   const years=[]; for(let y=new Date().getFullYear();y>=1950;y--) years.push(y);
 
-  // FIX: A–Z field differs by media type. TMDB rejects original_title.asc on /discover/tv.
   const azSort = type==='movie' ? 'original_title.asc' : 'original_name.asc';
   const newestSort = type==='movie' ? 'primary_release_date.desc' : 'first_air_date.desc';
 
@@ -307,15 +317,21 @@ async function openDetail(id){
   let it; try{ it=await api.details(stub.type,stub.tmdbId); }catch(e){ console.error("[openDetail] fallback to stub",e); it=stub; }
   indexItems([it]);
 
+  // FIX v3: use SEASON_DEFAULTS to pick the correct starting season for
+  // the dropdown and the "Play S1·E1" button label/data attributes.
+  const startSeason = defaultSeasonFor(it.tmdbId);
+
   let eps="";
   if(it.type==="series" && it.seasons && it.seasons.length){
-    const seasonOpts=it.seasons.map(s=>`<option value="${s.season_number}">Season ${s.season_number}</option>`).join("");
+    const seasonOpts=it.seasons.map(s=>`<option value="${s.season_number}"${s.season_number===startSeason?' selected':''}>Season ${s.season_number}</option>`).join("");
     eps=`<div class="eps"><div class="eps-head"><h4>Episodes</h4>
       <select id="seasonSel" data-tmdb="${h(it.tmdbId)}">${seasonOpts}</select></div>
       <div class="ep-list" id="epList"><div class="boot">Loading episodes…</div></div></div>`;
   }
 
-  // FIX #1 (fatal): the stray ":strong>''" in the old code is gone.
+  // "Play" button: pass startSeason so resolveSources gets the right season
+  // even before the user interacts with the episode list.
+  const playLabel = it.type==='series' ? ` S${startSeason}·E1` : '';
   $("#detailCard").innerHTML=`
     <button class="detail-close" data-close>&times;</button>
     <div class="detail-hero" style="${it.backdrop?`background-image:url('${it.backdrop}')`:posterBg(it)};background-size:cover;background-position:center"><div class="dfade"></div></div>
@@ -332,7 +348,7 @@ async function openDetail(id){
       <p class="ov">${h(it.overview||'')}</p>
       ${it.cast && it.cast.length ? `<p class="cast"><strong>Cast:</strong> ${h(it.cast.join(", "))}</p>` : ''}
       <div class="detail-actions">
-        <button class="btn btn-play" data-play="${h(it.id)}">▶ Play${it.type==='series'?' S1·E1':''}</button>
+        <button class="btn btn-play" data-play="${h(it.id)}" data-s="${startSeason}" data-e="1">▶ Play${playLabel}</button>
         <button class="btn btn-info" data-close>Close</button>
       </div>
       ${eps}
@@ -373,21 +389,9 @@ const FRAMED=(()=>{try{return window.self!==window.top;}catch(e){return true;}})
 const vEl=()=>$("#videoEl"), ifrEl=()=>$("#embedEl");
 function destroyHls(){ if(hlsInstance){try{hlsInstance.destroy()}catch(e){} hlsInstance=null;} }
 
-/* ============================================================
-   SOURCE PROBE — auto-detect dead servers and hide them.
-
-   What this catches:
-     - DNS failure / connection refused
-     - Browser-blocked requests (ad-blockers, CSP, mixed content)
-     - Timeouts (>4.5s with no response)
-   What this does NOT catch:
-     - Server returns 200 OK but renders "unavailable" inside the iframe.
-       Cross-origin iframes are opaque — we can't read their content.
-       (Needs a server-side proxy to inspect HTML for that case.)
-   ============================================================ */
 const PROBE_TIMEOUT_MS   = 4500;
-const PROBE_CACHE_TTL_MS = 10 * 60 * 1000; // 10 min
-const _probeCache = {}; // url -> { ok, ts }
+const PROBE_CACHE_TTL_MS = 10 * 60 * 1000;
+const _probeCache = {};
 
 function probeSource(src, parentSignal){
   const cached = _probeCache[src.url];
@@ -398,9 +402,6 @@ function probeSource(src, parentSignal){
     const ctrl  = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), PROBE_TIMEOUT_MS);
     if (parentSignal) parentSignal.addEventListener("abort", () => ctrl.abort(), { once: true });
-
-    // no-cors HEAD: opaque response, status unreadable, but the fetch promise
-    // rejects on network-level failure (DNS, refused, timeout, blocked).
     fetch(src.url, { method: "HEAD", mode: "no-cors", signal: ctrl.signal, redirect: "follow" })
       .then(() => {
         clearTimeout(timer);
@@ -409,7 +410,6 @@ function probeSource(src, parentSignal){
       })
       .catch(() => {
         clearTimeout(timer);
-        // don't cache as dead if we aborted because the parent session ended
         if (!parentSignal || !parentSignal.aborted) {
           _probeCache[src.url] = { ok: false, ts: Date.now() };
         }
@@ -418,22 +418,16 @@ function probeSource(src, parentSignal){
   });
 }
 
-// Manual cache nuke for the console / debug button if you want to force re-probe.
 window.clearProbeCache = () => { for (const k in _probeCache) delete _probeCache[k]; };
 
 function sourceTag(s){ return s.type === 'embed' ? 'embed' : s.type === 'hls' ? 'HLS' : 'MP4'; }
 function sourceLabel(s, status){ return `${s.label} · ${sourceTag(s)}${status ? ' · ' + status : ''}`; }
-
-// SOURCE ENGINE: `resolveSources` is provided by config.js.
-// (Removed the local 5-source stub — it was shadowing the real 10-server
-//  registry whenever script load order changed.)
 
 function openPlayer(id,season,episode){
   const it=byId(id); if(!it) return;
   pushHistory(it);
   clearInterval(heroTimer);
 
-  // Abort any in-flight probes from a previous player session.
   if (PLAYER_CTX && PLAYER_CTX.probeAbort) PLAYER_CTX.probeAbort.abort();
 
   const trackId=(season&&episode)?`${id}-S${season}E${episode}`:id;
@@ -445,14 +439,13 @@ function openPlayer(id,season,episode){
     userChoseSource:false,
     probeAbort:new AbortController(),
   };
-  const epTxt=(season&&episode)?` · S${season}·E${episode}`:(it.type==='series'?' · S1·E1':'');
+  const epTxt=(season&&episode)?` · S${season}·E${episode}`:(it.type==='series'?` · S${defaultSeasonFor(it.tmdbId)}·E1`:'');
   $("#playerTitle").textContent=it.title+epTxt;
 
   const sources=resolveSources(it,PLAYER_CTX.season,PLAYER_CTX.episode);
   PLAYER_CTX.sources=sources;
   const sel=$("#sourceSel");
 
-  // Initial render — every source marked "checking…" while probes run.
   sel.innerHTML=sources.map((s,i)=>{
     const cached=_probeCache[s.url];
     const status=(cached && (Date.now()-cached.ts)<PROBE_CACHE_TTL_MS)
@@ -466,24 +459,18 @@ function openPlayer(id,season,episode){
   };
   $("#playerModal").classList.add("open"); document.body.style.overflow="hidden";
 
-  // Pick the initial source — prefer first not-yet-known-dead one,
-  // skipping embeds when sandboxed in a preview frame.
-  const isPlayable = (s,i)=>{ const c=_probeCache[s.url]; return !c || c.ok; };
+  const isPlayable = (s)=>{ const c=_probeCache[s.url]; return !c || c.ok; };
   let defIdx = sources.findIndex(isPlayable);
   if (defIdx === -1) defIdx = 0;
   if (FRAMED) {
-    const demoIdx = sources.findIndex((s,i)=>s.type!=="embed" && isPlayable(s,i));
+    const demoIdx = sources.findIndex((s)=>s.type!=="embed" && isPlayable(s));
     if (demoIdx !== -1) defIdx = demoIdx;
   }
   sel.value=String(defIdx);
   loadSource(sources[defIdx]);
 
-  // Fire probes in parallel. As each resolves, update its dropdown option.
-  // If the currently-loaded source turns out to be dead and the user hasn't
-  // manually picked anything yet, auto-switch to the next live one.
   sources.forEach((src,i)=>{
     probeSource(src, PLAYER_CTX.probeAbort.signal).then(ok=>{
-      // Player may have been closed or a different title opened mid-probe.
       if (!PLAYER_CTX || PLAYER_CTX.sources !== sources) return;
       const opt = sel.options[i];
       if (!opt) return;
@@ -496,7 +483,6 @@ function openPlayer(id,season,episode){
           sel.value = next.value;
           loadSource(sources[+next.value]);
         } else {
-          // All sources confirmed dead. Show a clear note.
           $("#playerNote").innerHTML = `⚠️ No reachable servers for <strong>${h(it.title)}</strong>. This title may not be indexed by any of the public embed providers.`;
         }
       }
@@ -542,9 +528,7 @@ function loadSource(src){
 
 function closePlayer(){
   const v=vEl(), ifr=ifrEl();
-  // Abort any still-running probes from this session.
   if (PLAYER_CTX && PLAYER_CTX.probeAbort) PLAYER_CTX.probeAbort.abort();
-  // FIX: flush current progress on close so we don't lose the last few seconds.
   if(PLAYER_CTX && PLAYER_CTX.trackId && !isNaN(v.currentTime) && v.currentTime>5){
     saveProgress(PLAYER_CTX.trackId, v.currentTime);
   }
@@ -568,7 +552,6 @@ function bindPlayer(){
   $("#speedSel").onchange=e=>v.playbackRate=parseFloat(e.target.value);
   $("#btnFull").onclick=()=>{ const w=$("#videoWrap"); if(!document.fullscreenElement) w.requestFullscreen?.(); else document.exitFullscreen?.(); };
 
-  // FIX: throttle progress writes to localStorage (timeupdate fires ~4x/sec).
   let lastSave=0;
   v.ontimeupdate=()=>{
     $("#progressFilled").style.width=(v.currentTime/(v.duration||1)*100)+"%";
