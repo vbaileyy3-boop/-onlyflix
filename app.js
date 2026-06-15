@@ -1,5 +1,5 @@
 /* ============================================================
-   app.js — OnlyFlix UI (TMDB live) + multi-format player (FIXED v3)
+   app.js — OnlyFlix UI (TMDB live) + multi-format player (FIXED v4)
    ============================================================
    Changes vs v2:
    - openDetail: "Play S1·E1" button now passes the correct starting
@@ -394,6 +394,12 @@ const PROBE_CACHE_TTL_MS = 10 * 60 * 1000;
 const _probeCache = {};
 
 function probeSource(src, parentSignal){
+  // Cross-origin <iframe> embeds cannot be liveness-checked from JS: a no-cors
+  // HEAD yields an opaque "success" or rejects on hosts that don't answer HEAD —
+  // both meaningless for iframe loadability. Probing them only produced false
+  // "unreachable" flags that kicked the player off curated embeds onto generic
+  // ones (VidSrc). Treat embeds as always OK; never network-probe them.
+  if (src.type === "embed") return Promise.resolve(true);
   const cached = _probeCache[src.url];
   if (cached && (Date.now() - cached.ts) < PROBE_CACHE_TTL_MS) {
     return Promise.resolve(cached.ok);
@@ -447,6 +453,10 @@ function openPlayer(id,season,episode){
   const sel=$("#sourceSel");
 
   sel.innerHTML=sources.map((s,i)=>{
+    if (s.type === "embed") {
+      // embeds are never probed -> no status text, never disabled
+      return `<option value="${i}">${h(sourceLabel(s,null))}</option>`;
+    }
     const cached=_probeCache[s.url];
     const status=(cached && (Date.now()-cached.ts)<PROBE_CACHE_TTL_MS)
       ? (cached.ok ? null : 'unreachable')
@@ -470,6 +480,7 @@ function openPlayer(id,season,episode){
   loadSource(sources[defIdx]);
 
   sources.forEach((src,i)=>{
+    if (src.type === "embed") return;   // can't reliably probe cross-origin embeds
     probeSource(src, PLAYER_CTX.probeAbort.signal).then(ok=>{
       if (!PLAYER_CTX || PLAYER_CTX.sources !== sources) return;
       const opt = sel.options[i];
