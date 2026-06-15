@@ -1,5 +1,5 @@
 /* ============================================================
-   app.js — OnlyFlix UI (TMDB live) + multi-format player (FIXED v5)
+   app.js — OnlyFlix UI (TMDB live) + multi-format player (FIXED v6)
    ============================================================
    Changes vs v2:
    - openDetail: "Play S1·E1" button now passes the correct starting
@@ -38,6 +38,19 @@ function removeHistory(id){
   return h;
 }
 
+/* ---------- My List (watchlist) ---------- */
+const LKEY="onlyflix_mylist";
+const getList=()=>{try{return JSON.parse(localStorage.getItem(LKEY)||"[]")}catch(e){return[]}};
+const inList=id=>getList().some(x=>x.id===id);
+function toggleList(it){
+  if(!it) return false;
+  let l=getList();
+  if(l.some(x=>x.id===it.id)){ l=l.filter(x=>x.id!==it.id); }
+  else { l.unshift({id:it.id,type:it.type,tmdbId:it.tmdbId,title:it.title,poster:it.poster,backdrop:it.backdrop,year:it.year,rating:it.rating,genres:it.genres||[],overview:it.overview}); l=l.slice(0,60); }
+  try{ localStorage.setItem(LKEY,JSON.stringify(l)); }catch(e){ console.error("List write blocked",e); }
+  return l.some(x=>x.id===it.id);
+}
+
 /* ---------- playback progress memory ---------- */
 const PKEY = "onlyflix_progress";
 const getProgress  = () => { try { return JSON.parse(localStorage.getItem(PKEY)||"{}") } catch(e) { return {} } };
@@ -61,10 +74,12 @@ function posterBg(it){ return it.poster ? `background-image:url('${it.poster}')`
 function cardHTML(it){
   indexItems([it]);
   const genre = it.genres && it.genres[0] ? ' · ' + h(it.genres[0]) : '';
+  const saved = inList(it.id);
   return `<div class="card" data-id="${h(it.id)}">
     <div class="poster" style="${posterBg(it)}">
       <span class="badge-type">${it.type==='series'?'TV':'Movie'}</span>
       ${it.rating?`<span class="badge-rating">★ ${it.rating}</span>`:''}
+      <button class="bm-btn${saved?' active':''}" data-bookmark="${h(it.id)}" title="${saved?'Remove from My List':'Add to My List'}" aria-label="My List">${saved?'✓':'+'}</button>
       <div class="play-ico"><div>▶</div></div>
     </div>
     <div class="card-sub">${h(it.title)}</div>
@@ -98,8 +113,17 @@ function continueCardHTML(it){
 function continueRowHTML(items){
   if(!items || !items.length) return "";
   return `<div class="row" id="cwRow">
-    <div class="row-head"><h2>Continue Watching</h2></div>
+    <div class="row-head"><h2>Continue Watching</h2><span class="more cw-clear" data-clear-history>Clear all</span></div>
     <div class="row-scroll">${items.map(continueCardHTML).join("")}</div>
+  </div>`;
+}
+
+/* ---- My List row ---- */
+function myListRowHTML(items){
+  if(!items || !items.length) return "";
+  return `<div class="row" id="myListRow">
+    <div class="row-head"><h2>My List</h2></div>
+    <div class="row-scroll">${items.map(cardHTML).join("")}</div>
   </div>`;
 }
 
@@ -206,8 +230,10 @@ async function renderHome(){
   await initHero(trend);
 
   const hist=getHistory(); hist.forEach(hh=>INDEX[hh.id]=hh);
+  const mylist=getList(); mylist.forEach(m=>INDEX[m.id]=m);
   let html="";
   if(hist.length) html+=continueRowHTML(hist);
+  if(mylist.length) html+=myListRowHTML(mylist);
   html+=rowHTML("Trending Now",trend,'movie');
   html+=rowHTML("Now Playing in Theaters",nowp,'movie');
   html+=rowHTML("Top Rated Movies",topm,'movie');
@@ -377,9 +403,12 @@ async function openDetail(id){
       ${it.cast && it.cast.length ? `<p class="cast"><strong>Cast:</strong> ${h(it.cast.join(", "))}</p>` : ''}
       <div class="detail-actions">
         <button class="btn btn-play" data-play="${h(it.id)}" data-s="${startSeason}" data-e="1">▶ Play${playLabel}</button>
+        ${it.trailerKey?`<button class="btn btn-trailer" data-trailer="${h(it.trailerKey)}">▶ Trailer</button>`:''}
+        <button class="btn btn-list${inList(it.id)?' active':''}" data-bookmark="${h(it.id)}">${inList(it.id)?'✓ In My List':'+ My List'}</button>
         <button class="btn btn-info" data-close>Close</button>
       </div>
       ${eps}
+      <div id="moreLikeThis" class="mlt"></div>
     </div>`;
 
   if(it.type==="series" && it.seasons && it.seasons.length){
@@ -402,11 +431,39 @@ async function openDetail(id){
     };
     sel.onchange=load; load();
   }
+
+  // More Like This (TMDB recommendations) — non-blocking
+  api.recommendations(it.type, it.tmdbId).then(recs=>{
+    if(!recs || !recs.length) return;
+    indexItems(recs);
+    const box=$("#moreLikeThis");
+    if(box) box.innerHTML=`<h4 class="mlt-head">More Like This</h4><div class="row-scroll">${recs.map(cardHTML).join("")}</div>`;
+  }).catch(()=>{});
 }
 function closeDetail(){
   $("#detailModal").classList.remove("open");
   if(!$("#playerModal").classList.contains("open")) document.body.style.overflow="";
   if($("#hero").style.display!=="none") restartHeroTimer();
+}
+
+/* ---------- Trailer overlay (YouTube) ---------- */
+function openTrailer(key){
+  let ov=$("#trailerModal");
+  if(!ov){
+    ov=document.createElement("div");
+    ov.id="trailerModal"; ov.className="trailer-modal";
+    ov.innerHTML=`<div class="trailer-box"><button class="trailer-close" data-close-trailer aria-label="Close">×</button><div class="trailer-frame"><iframe id="trailerIframe" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe></div></div>`;
+    ov.addEventListener("click",ev=>{ if(ev.target===ov) closeTrailer(); });
+    document.body.appendChild(ov);
+  }
+  $("#trailerIframe").src=`https://www.youtube.com/embed/${encodeURIComponent(key)}?autoplay=1&rel=0`;
+  ov.classList.add("open"); document.body.style.overflow="hidden";
+}
+function closeTrailer(){
+  const ov=$("#trailerModal"); if(!ov) return;
+  const ifr=$("#trailerIframe"); if(ifr) ifr.src="";
+  ov.classList.remove("open");
+  if(!$("#detailModal").classList.contains("open") && !$("#playerModal").classList.contains("open")) document.body.style.overflow="";
 }
 
 /* ============================================================
@@ -622,6 +679,23 @@ document.addEventListener("click",e=>{
     if(!remaining.length){ const row=$("#cwRow"); if(row) row.remove(); }
     return;
   }
+  const bm=e.target.closest("[data-bookmark]");
+  if(bm){
+    e.preventDefault(); e.stopPropagation();
+    const it=byId(bm.dataset.bookmark);
+    const nowIn=toggleList(it);
+    bm.classList.toggle("active", nowIn);
+    if(bm.classList.contains("btn-list")) bm.textContent = nowIn ? "✓ In My List" : "+ My List";
+    else bm.textContent = nowIn ? "✓" : "+";
+    bm.title = nowIn ? "Remove from My List" : "Add to My List";
+    if(!nowIn){ const mrow=bm.closest("#myListRow"); if(mrow){ const c=bm.closest(".card"); if(c) c.remove(); if(!getList().length) mrow.remove(); } }
+    return;
+  }
+  const ch=e.target.closest("[data-clear-history]");
+  if(ch){ e.preventDefault(); e.stopPropagation(); try{localStorage.removeItem(HKEY);}catch(_){} const row=$("#cwRow"); if(row) row.remove(); return; }
+  const tr=e.target.closest("[data-trailer]");
+  if(tr){ e.preventDefault(); e.stopPropagation(); openTrailer(tr.dataset.trailer); return; }
+  if(e.target.closest("[data-close-trailer]")){ closeTrailer(); return; }
   const r=e.target.closest("[data-route]");      if(r){e.preventDefault();route(r.dataset.route);return;}
   const play=e.target.closest("[data-play]");    if(play){e.preventDefault();openPlayer(play.dataset.play,play.dataset.s,play.dataset.e);return;}
   const det=e.target.closest("[data-detail]");   if(det){e.preventDefault();openDetail(det.dataset.detail);return;}
@@ -630,7 +704,29 @@ document.addEventListener("click",e=>{
   if(e.target.closest("[data-close]"))        closeDetail();
   if(e.target.closest("[data-close-player]")) closePlayer();
 });
-document.addEventListener("keydown",e=>{ if(e.key==="Escape"){ closePlayer(); closeDetail(); } });
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){ closeTrailer(); closePlayer(); closeDetail(); return; }
+  if(!$("#playerModal").classList.contains("open")) return;
+  const tag=(e.target.tagName||"").toLowerCase();
+  if(tag==="input"||tag==="select"||tag==="textarea") return;
+  const v=vEl();
+  switch(e.key){
+    case " ": case "k":
+      e.preventDefault();
+      if(v.paused){ v.play(); $("#btnPlay").textContent="❚❚"; } else { v.pause(); $("#btnPlay").textContent="▶"; }
+      break;
+    case "ArrowLeft":  e.preventDefault(); v.currentTime=Math.max(0,v.currentTime-10); break;
+    case "ArrowRight": e.preventDefault(); v.currentTime=Math.min(v.duration||0,v.currentTime+10); break;
+    case "f": case "F":
+      e.preventDefault();
+      { const w=$("#videoWrap"); if(!document.fullscreenElement) w.requestFullscreen?.(); else document.exitFullscreen?.(); }
+      break;
+    case "m": case "M":
+      e.preventDefault();
+      v.muted=!v.muted; $("#btnMute").textContent=v.muted?"🔇":"🔊";
+      break;
+  }
+});
 
 /* ---------- search input ---------- */
 let searchTimer=null;
