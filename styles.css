@@ -719,3 +719,76 @@ main { position: relative; z-index: 3; margin-top: -40px; }
 .cw-card:hover .cw-remove { opacity: 1; transform: scale(1); }
 .cw-card:hover .badge-rating { opacity: 0; }
 .cw-remove:hover { background: var(--accent); }
+
+
+/* ---- My List bookmark (+/✓) button on cards ---- */
+.bm-btn {
+  position: absolute;
+  top: 8px; right: 8px; z-index: 6;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 50%;
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff; font-size: 20px; line-height: 1; font-weight: 600;
+  cursor: pointer;
+  opacity: 0; transform: scale(0.8);
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+}
+.card:hover .bm-btn { opacity: 1; transform: scale(1); }
+.card:hover .badge-rating { opacity: 0; }
+.bm-btn:hover { background: var(--accent); }
+.bm-btn.active { opacity: 1; background: var(--accent); }
+
+/* ---- Continue Watching: clear-all link ---- */
+.cw-clear { cursor: pointer; }
+.cw-clear:hover { color: var(--accent2); }
+
+/* ---- detail-modal action buttons ---- */
+.btn-trailer { background: var(--bg2); color: var(--text); border: 1px solid var(--line); }
+.btn-trailer:hover { border-color: var(--accent); color: var(--accent2); }
+.btn-list { background: var(--bg2); color: var(--text); border: 1px solid var(--line); }
+.btn-list:hover { border-color: var(--accent); }
+.btn-list.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+/* ---- More Like This (inside detail modal) ---- */
+.mlt { margin-top: 18px; }
+.mlt-head { font-size: 18px; margin-bottom: 12px; }
+.mlt .row-scroll {
+  display: flex; gap: 12px; overflow-x: auto;
+  padding-bottom: 8px; scroll-behavior: smooth;
+}
+.mlt .card { flex: 0 0 auto; }
+
+/* ---- Trailer overlay (YouTube) ---- */
+.trailer-modal {
+  position: fixed; inset: 0; z-index: 200;
+  display: none; align-items: center; justify-content: center;
+  background: rgba(0, 0, 0, 0.88);
+  padding: 24px;
+}
+.trailer-modal.open { display: flex; }
+.trailer-box {
+  position: relative;
+  width: min(960px, 100%);
+}
+.trailer-frame {
+  position: relative;
+  width: 100%; padding-top: 56.25%;
+  border-radius: 10px; overflow: hidden;
+  background: #000;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+.trailer-frame iframe {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; border: 0;
+}
+.trailer-close {
+  position: absolute; top: -42px; right: 0;
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border: none; border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff; font-size: 24px; line-height: 1;
+  cursor: pointer; transition: background 0.15s ease;
+}
+.trailer-close:hover { background: var(--accent); }
