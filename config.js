@@ -1,23 +1,15 @@
 /* ============================================================
-   config.js — TMDB config + STREAM SOURCE RESOLVER LAYER (FIXED v4)
+   config.js — TMDB config + STREAM SOURCE RESOLVER LAYER (FIXED v5)
    ============================================================
-   Root cause of "not working": SOURCE_REGISTRY used TMDB ID 220024
-   (an unrelated older title). The correct TMDB ID for the series
-   "Baddies USA" (2025–) is 309280.
-
-   IMPORTANT — season numbering:
-   The show appears in your UI as "Season 1" (Chapter 2), but on TMDB
-   it is registered as Season 2.  The keys below therefore use S2E*
-   to match what resolveSources() will pass in when the player requests
-   season=2, episode=N.  If your player passes season=1 for this show,
-   change the keys to S1E*.
-
-   Episodes verified via brokensilenze.net (June 14, 2026):
-     E1 – vidara, vtbe, voe
-     E2 – vidara, vtbe, voe
-     E3 – vidara, vtbe, voe
-     E4 – vidmoly (vidara gone), vtbe, voe
-     E5 – vidara, vtbe, voe
+   Fixes vs v4:
+   - Added SEASON_DEFAULTS map: for shows where TMDB season number
+     differs from what the UI calls "Season 1", we record the correct
+     TMDB season to use when no season arg is passed (e.g. the hero
+     "Play" button).  Baddies USA (309280) maps to season 2 because
+     TMDB registers Chapter 2 as its second season.
+   - resolveSources() now looks up SEASON_DEFAULTS[id] before falling
+     back to 1, so the "Play S1·E1" hero button correctly resolves to
+     S2E1 for this show.
    ============================================================ */
 
 const TMDB = {
@@ -30,6 +22,19 @@ const TMDB = {
   IMG:      "https://image.tmdb.org/t/p/w500",
   IMG_LG:   "https://image.tmdb.org/t/p/w1280",
   IMG_ORIG: "https://image.tmdb.org/t/p/original",
+};
+
+/* ------------------------------------------------------------
+   SEASON_DEFAULTS
+   Maps TMDB series ID -> the TMDB season number to use when
+   openPlayer() is called without an explicit season argument
+   (e.g. the hero "Play" button, or the detail modal "Play S1·E1").
+
+   Add an entry here for any show where TMDB's season numbering
+   doesn't start at 1 for the content you have registered.
+   ------------------------------------------------------------ */
+const SEASON_DEFAULTS = {
+  309280: 2,   // Baddies USA — Chapter 2 is Season 2 on TMDB
 };
 
 /* ------------------------------------------------------------
@@ -46,6 +51,7 @@ const SOURCE_REGISTRY = {
      Baddies USA (Chapter 2 / Season 2)
      TMDB series ID : 309280
      TMDB season    : 2  (the show's "Chapter 2")
+     Episodes verified via brokensilenze.net, June 14 2026.
      ================================================================ */
 
   /* ---- S2 E1 – "Home of the Brave" (May 17, 2026) ---- */
@@ -72,7 +78,7 @@ const SOURCE_REGISTRY = {
   ],
 
   /* ---- S2 E4 – "We Know What This Means" (Jun 7, 2026) ---- */
-  /* Note: vidara.to not listed for E4 on brokensilenze; vidmoly used instead */
+  /* vidara.to not listed for E4 on brokensilenze; vidmoly used as primary */
   "tv:309280:S2E4": [
     { label: "Vidmoly", quality: "auto", type: "embed", url: "https://vidmoly.biz/embed-ahttf7s4w0it.html" },
     { label: "VTube",   quality: "auto", type: "embed", url: "https://vtbe.to/embed-m498rjyjetnr.html" },
@@ -161,16 +167,24 @@ const EMBED_SERVERS = [
      3. Generic EMBED_SERVERS (nine servers)
      4. Deterministic DEMO_POOL pick for this title
      5. UNIVERSAL_FALLBACK
+
+   Season defaulting:
+     If no season is passed (hero "Play" button, detail "Play S1·E1"),
+     we look up SEASON_DEFAULTS[tmdbId] before falling back to 1.
+     This ensures shows like Baddies USA whose current content lives
+     on TMDB season 2 still resolve correctly from a no-arg play call.
    ------------------------------------------------------------ */
 function resolveSources(item, season, episode) {
   const isTV = item.type === "series" || item.type === "tv";
   const id   = item.tmdbId;
-  const s    = season  || 1;
-  const e    = episode || 1;
+
+  // Use explicit season if provided, then check SEASON_DEFAULTS, then 1.
+  const s = season  ? +season  : (SEASON_DEFAULTS[id] || 1);
+  const e = episode ? +episode : 1;
 
   let out = [];
 
-  // 1 & 2) registry overrides
+  // 1 & 2) registry overrides (episode-specific first, then show-level)
   const epKey = `tv:${id}:S${s}E${e}`;
   const key   = isTV ? `tv:${id}` : `movie:${id}`;
   if (isTV && SOURCE_REGISTRY[epKey]) out = out.concat(SOURCE_REGISTRY[epKey]);
@@ -191,7 +205,7 @@ function resolveSources(item, season, episode) {
     url:     v.url,
   }));
 
-  // 5) universal fallback
+  // 5) universal fallback — guarantees at least one playable source
   out = out.concat(UNIVERSAL_FALLBACK);
 
   return out;
