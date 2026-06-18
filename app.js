@@ -371,8 +371,6 @@ async function openDetail(id){
   let it; try{ it=await api.details(stub.type,stub.tmdbId); }catch(e){ console.error("[openDetail] fallback to stub",e); it=stub; }
   indexItems([it]);
 
-  // FIX v3: use SEASON_DEFAULTS to pick the correct starting season for
-  // the dropdown and the "Play S1·E1" button label/data attributes.
   const startSeason = defaultSeasonFor(it.tmdbId);
 
   let eps="";
@@ -383,8 +381,6 @@ async function openDetail(id){
       <div class="ep-list" id="epList"><div class="boot">Loading episodes…</div></div></div>`;
   }
 
-  // "Play" button: pass startSeason so resolveSources gets the right season
-  // even before the user interacts with the episode list.
   const playLabel = it.type==='series' ? ` S${startSeason}·E1` : '';
   $("#detailCard").innerHTML=`
     <button class="detail-close" data-close>&times;</button>
@@ -432,7 +428,6 @@ async function openDetail(id){
     sel.onchange=load; load();
   }
 
-  // More Like This (TMDB recommendations) — non-blocking
   api.recommendations(it.type, it.tmdbId).then(recs=>{
     if(!recs || !recs.length) return;
     indexItems(recs);
@@ -479,11 +474,6 @@ const PROBE_CACHE_TTL_MS = 10 * 60 * 1000;
 const _probeCache = {};
 
 function probeSource(src, parentSignal){
-  // Cross-origin <iframe> embeds cannot be liveness-checked from JS: a no-cors
-  // HEAD yields an opaque "success" or rejects on hosts that don't answer HEAD —
-  // both meaningless for iframe loadability. Probing them only produced false
-  // "unreachable" flags that kicked the player off curated embeds onto generic
-  // ones (VidSrc). Treat embeds as always OK; never network-probe them.
   if (src.type === "embed") return Promise.resolve(true);
   const cached = _probeCache[src.url];
   if (cached && (Date.now() - cached.ts) < PROBE_CACHE_TTL_MS) {
@@ -512,8 +502,142 @@ function probeSource(src, parentSignal){
 window.clearProbeCache = () => { for (const k in _probeCache) delete _probeCache[k]; };
 
 function sourceTag(s){ return s.type === 'embed' ? 'embed' : s.type === 'hls' ? 'HLS' : 'MP4'; }
-function sourceLabel(s, status){ return `${s.label} · ${sourceTag(s)}${status ? ' · ' + status : ''}`; }
+function sourceLabel(s){ return s.label || s.url; }
 
+/* ---------- Server switcher UI ---------- */
+function renderServerBar(sources, activeIdx) {
+  const bar = $("#serverBar");
+  if (!bar) return;
+  bar.innerHTML = sources.map((s, i) => {
+    const cached = _probeCache[s.url];
+    const checked = cached && (Date.now() - cached.ts) < PROBE_CACHE_TTL_MS;
+    const reachable = !checked || cached.ok || s.type === "embed";
+    const statusDot = s.type === "embed"
+      ? ''
+      : checked
+        ? (cached.ok ? '<span class="srv-dot srv-ok" title="Reachable"></span>' : '<span class="srv-dot srv-bad" title="Unreachable"></span>')
+        : '<span class="srv-dot srv-pending" title="Checking…"></span>';
+    const typeTag = sourceTag(s);
+    return `<button
+      class="srv-btn${i === activeIdx ? ' active' : ''}${!reachable ? ' srv-unreachable' : ''}"
+      data-srv="${i}"
+      title="${h(s.url)}"
+    >${statusDot}<span class="srv-name">${h(sourceLabel(s))}</span><span class="srv-tag">${typeTag}</span></button>`;
+  }).join('');
+
+  $$(".srv-btn", bar).forEach(btn => {
+    btn.onclick = () => {
+      if (!PLAYER_CTX) return;
+      const idx = +btn.dataset.srv;
+      PLAYER_CTX.userChoseSource = true;
+      // sync the hidden select too (used in existing loadSource plumbing)
+      const sel = $("#sourceSel");
+      if (sel) sel.value = String(idx);
+      setActiveServer(idx);
+      loadSource(PLAYER_CTX.sources[idx]);
+    };
+  });
+}
+
+function setActiveServer(idx) {
+  $$(".srv-btn", $("#serverBar")).forEach((b, i) => b.classList.toggle("active", i === idx));
+}
+
+function updateServerDot(idx, ok) {
+  const bar = $("#serverBar");
+  if (!bar) return;
+  const btn = bar.querySelector(`[data-srv="${idx}"]`);
+  if (!btn) return;
+  const dot = btn.querySelector(".srv-dot");
+  if (!dot) return;
+  dot.className = ok ? "srv-dot srv-ok" : "srv-dot srv-bad";
+  dot.title = ok ? "Reachable" : "Unreachable";
+  if (!ok) btn.classList.add("srv-unreachable");
+  else btn.classList.remove("srv-unreachable");
+}
+
+/* ============================================================
+   CSS injected at runtime for the server bar
+   ============================================================ */
+(function injectServerBarCSS(){
+  if (document.getElementById("srv-bar-style")) return;
+  const style = document.createElement("style");
+  style.id = "srv-bar-style";
+  style.textContent = `
+    #serverBar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      padding: 8px 12px 6px;
+      background: rgba(0,0,0,0.55);
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .srv-bar-label {
+      width: 100%;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 2px;
+    }
+    .srv-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 11px;
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 4px;
+      background: rgba(255,255,255,0.06);
+      color: rgba(255,255,255,0.75);
+      font-size: 12px;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
+      white-space: nowrap;
+    }
+    .srv-btn:hover {
+      background: rgba(255,255,255,0.13);
+      border-color: rgba(255,255,255,0.3);
+      color: #fff;
+    }
+    .srv-btn.active {
+      background: var(--accent, #e50914);
+      border-color: var(--accent, #e50914);
+      color: #fff;
+      font-weight: 600;
+    }
+    .srv-btn.srv-unreachable {
+      opacity: 0.45;
+    }
+    .srv-btn.srv-unreachable:not(.active) {
+      text-decoration: line-through;
+    }
+    .srv-name { max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+    .srv-tag {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      opacity: 0.55;
+      border: 1px solid currentColor;
+      border-radius: 3px;
+      padding: 1px 4px;
+      flex-shrink: 0;
+    }
+    .srv-dot {
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: inline-block;
+    }
+    .srv-ok      { background: #4caf50; }
+    .srv-bad     { background: #f44336; }
+    .srv-pending { background: #ff9800; animation: srv-pulse 1s infinite; }
+    @keyframes srv-pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
+  `;
+  document.head.appendChild(style);
+})();
+
+/* ---------- openPlayer (patched to drive server bar) ---------- */
 function openPlayer(id,season,episode){
   const it=byId(id); if(!it) return;
   pushHistory(it);
@@ -535,49 +659,63 @@ function openPlayer(id,season,episode){
 
   const sources=resolveSources(it,PLAYER_CTX.season,PLAYER_CTX.episode);
   PLAYER_CTX.sources=sources;
-  const sel=$("#sourceSel");
 
-  sel.innerHTML=sources.map((s,i)=>{
-    if (s.type === "embed") {
-      // embeds are never probed -> no status text, never disabled
-      return `<option value="${i}">${h(sourceLabel(s,null))}</option>`;
-    }
-    const cached=_probeCache[s.url];
-    const status=(cached && (Date.now()-cached.ts)<PROBE_CACHE_TTL_MS)
-      ? (cached.ok ? null : 'unreachable')
-      : 'checking…';
-    return `<option value="${i}"${cached && !cached.ok ? ' disabled' : ''}>${h(sourceLabel(s,status))}</option>`;
-  }).join("");
-  sel.onchange=()=>{
-    PLAYER_CTX.userChoseSource=true;
-    loadSource(sources[+sel.value]);
-  };
+  /* keep hidden <select> in sync (legacy) */
+  const sel=$("#sourceSel");
+  if (sel) {
+    sel.innerHTML=sources.map((s,i)=>`<option value="${i}">${h(sourceLabel(s))}</option>`).join("");
+    sel.onchange=()=>{
+      PLAYER_CTX.userChoseSource=true;
+      const idx=+sel.value;
+      setActiveServer(idx);
+      loadSource(sources[idx]);
+    };
+  }
+
   $("#playerModal").classList.add("open"); document.body.style.overflow="hidden";
 
-  const isPlayable = (s)=>{ const c=_probeCache[s.url]; return !c || c.ok; };
+  /* inject server bar label once */
+  const bar = $("#serverBar");
+  if (bar && !bar.querySelector(".srv-bar-label")) {
+    bar.insertAdjacentHTML("afterbegin", '<span class="srv-bar-label">Servers</span>');
+  }
+
+  /* pick default: first non-broken; in framed context prefer non-embed */
+  const isPlayable = (s) => {
+    if (s.type === "embed") return true;
+    const c = _probeCache[s.url];
+    return !c || c.ok;
+  };
   let defIdx = sources.findIndex(isPlayable);
   if (defIdx === -1) defIdx = 0;
   if (FRAMED) {
-    const demoIdx = sources.findIndex((s)=>s.type!=="embed" && isPlayable(s));
+    const demoIdx = sources.findIndex((s) => s.type !== "embed" && isPlayable(s));
     if (demoIdx !== -1) defIdx = demoIdx;
   }
-  sel.value=String(defIdx);
+
+  /* render bar then load */
+  renderServerBar(sources, defIdx);
+  if (sel) sel.value = String(defIdx);
   loadSource(sources[defIdx]);
 
-  sources.forEach((src,i)=>{
-    if (src.type === "embed") return;   // can't reliably probe cross-origin embeds
-    probeSource(src, PLAYER_CTX.probeAbort.signal).then(ok=>{
+  /* probe non-embed sources and update dots */
+  sources.forEach((src, i) => {
+    if (src.type === "embed") return;
+    probeSource(src, PLAYER_CTX.probeAbort.signal).then(ok => {
       if (!PLAYER_CTX || PLAYER_CTX.sources !== sources) return;
-      const opt = sel.options[i];
-      if (!opt) return;
-      opt.textContent = sourceLabel(src, ok ? null : 'unreachable');
-      opt.disabled = !ok;
+      updateServerDot(i, ok);
 
-      if (!ok && +sel.value === i && !PLAYER_CTX.userChoseSource) {
-        const next = Array.from(sel.options).find(o => !o.disabled);
-        if (next) {
-          sel.value = next.value;
-          loadSource(sources[+next.value]);
+      /* if the active server just failed and user hasn't manually picked, auto-switch */
+      const activeBtn = $("#serverBar")?.querySelector(".srv-btn.active");
+      const activeIdx = activeBtn ? +activeBtn.dataset.srv : defIdx;
+      if (!ok && activeIdx === i && !PLAYER_CTX.userChoseSource) {
+        /* find next available button */
+        const nextBtn = Array.from($$("#serverBar .srv-btn")).find(b => !b.classList.contains("srv-unreachable") && +b.dataset.srv !== i);
+        if (nextBtn) {
+          const nextIdx = +nextBtn.dataset.srv;
+          if (sel) sel.value = String(nextIdx);
+          setActiveServer(nextIdx);
+          loadSource(sources[nextIdx]);
         } else {
           $("#playerNote").innerHTML = `⚠️ No reachable servers for <strong>${h(it.title)}</strong>. This title may not be indexed by any of the public embed providers.`;
         }
@@ -596,7 +734,7 @@ function loadSource(src){
     note.innerHTML=(FRAMED
       ? `⚠️ <strong>${h(src.label)}</strong> server is blocked inside this sandboxed preview. `
       : `Playing via <strong>${h(src.label)}</strong> server. If it doesn't load, `)
-      + `<a href="${src.url}" target="_blank" rel="noopener">open this server in a new tab ↗</a> or pick another server / the Demo source above.`;
+      + `<a href="${src.url}" target="_blank" rel="noopener">open this server in a new tab ↗</a> or try another server above.`;
     return;
   }
   ifr.style.display="none"; ifr.removeAttribute("src");
@@ -616,7 +754,7 @@ function loadSource(src){
       hlsInstance=new Hls({enableWorker:true});
       hlsInstance.loadSource(src.url);
       hlsInstance.attachMedia(v);
-      hlsInstance.on(Hls.Events.ERROR,(_,d)=>{ if(d.fatal) note.textContent="HLS error: "+d.type+" — try another source."; });
+      hlsInstance.on(Hls.Events.ERROR,(_,d)=>{ if(d.fatal) note.textContent="HLS error: "+d.type+" — try another server above."; });
     } else { v.src=src.url; }
   } else { v.src=src.url; }
   v.play().then(()=>$("#btnPlay").textContent="❚❚").catch(()=>$("#btnPlay").textContent="▶");
