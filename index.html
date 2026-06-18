@@ -63,6 +63,10 @@
   <div class="player-shell">
     <button class="player-close" data-close-player>&times;</button>
     <div class="player-title" id="playerTitle"></div>
+
+    <!-- ✦ Server switcher bar — populated by app.js renderServerBar() -->
+    <div class="server-bar" id="serverBar"></div>
+
     <div class="video-wrap" id="videoWrap">
       <video id="videoEl" preload="metadata" playsinline></video>
       <iframe id="embedEl" allowfullscreen allow="autoplay; encrypted-media" style="display:none"></iframe>
@@ -78,10 +82,6 @@
           </div>
           <span class="time" id="timeLabel">0:00 / 0:00</span>
           <div class="spacer"></div>
-          <div class="select-wrap">
-            <label>Server / Source</label>
-            <select id="sourceSel"></select>
-          </div>
           <div class="select-wrap">
             <label>Speed</label>
             <select id="speedSel">
