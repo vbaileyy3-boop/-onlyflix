@@ -72,13 +72,20 @@ function norm(x) {
   };
 }
 
-function normList(arr) { return (arr || []).map(norm).filter(Boolean); }
+function normList(arr) { 
+  if (!arr || !Array.isArray(arr)) return [];
+  return arr.map(norm).filter(Boolean); 
+}
 
 /* ---------- Generic endpoint factory ---------- */
-function endpoint(path, transform = normList) {
+function endpoint(path, transform = null) {
   return (params = {}) => 
     tmdb(path, params)
-      .then(d => transform(d))
+      .then(d => {
+        // If transform is provided, use it, otherwise extract results and normalize
+        if (transform) return transform(d);
+        return normList(d.results);
+      })
       .catch(err => { 
         console.error(`[api] ${path}:`, err); 
         throw err; 
@@ -123,23 +130,30 @@ api.discover = (type, { genre, year, sort = "popularity.desc", page = 1 } = {}) 
     params[isTV ? "first_air_date_year" : "primary_release_year"] = year;
   }
   
-  return endpoint(
-    isTV ? "/discover/tv" : "/discover/movie",
-    d => ({ items: normList(d.results), totalPages: d.total_pages ?? 1 })
-  )(params);
+  return tmdb(isTV ? "/discover/tv" : "/discover/movie", params)
+    .then(d => ({ 
+      items: normList(d.results), 
+      totalPages: d.total_pages ?? 1 
+    }))
+    .catch(err => { 
+      console.error("[api] discover:", err); 
+      throw err; 
+    });
 };
 
 /* ---------- Genre row ---------- */
 api.byGenreRow = (type, genreId) => {
   const isTV = type === "series";
-  return endpoint(
-    isTV ? "/discover/tv" : "/discover/movie",
-    d => normList(d.results).slice(0, 16)
-  )({
+  return tmdb(isTV ? "/discover/tv" : "/discover/movie", {
     with_genres: genreId,
     sort_by: "popularity.desc",
     "vote_count.gte": 50,
-  });
+  })
+    .then(d => normList(d.results).slice(0, 16))
+    .catch(err => { 
+      console.error("[api] byGenreRow:", err); 
+      throw err; 
+    });
 };
 
 /* ---------- Details ---------- */
