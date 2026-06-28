@@ -4,13 +4,11 @@
 
 import { TMDB } from './config.js';
 
-/* ---------- State ---------- */
 const genreMap = new Map();
 let allGenres = [];
 const cache = new Map();
 const CACHE_TTL = 5 * 60 * 1000;
 
-/* ---------- Core fetch ---------- */
 async function tmdb(path, params = {}, retries = 2) {
   const url = new URL(TMDB.BASE + path);
   url.searchParams.set('api_key', TMDB.KEY);
@@ -44,7 +42,6 @@ async function tmdb(path, params = {}, retries = 2) {
   throw new Error(`Failed after ${retries} retries`);
 }
 
-/* ---------- Genres ---------- */
 export async function loadGenres() {
   try {
     const [movies, tv] = await Promise.all([
@@ -71,7 +68,6 @@ export function getGenres() {
   return allGenres;
 }
 
-/* ---------- Normalize ---------- */
 function normalize(item) {
   if (!item?.id || item.media_type === 'person') return null;
 
@@ -100,7 +96,6 @@ function normalizeList(arr) {
   return arr.map(normalize).filter(Boolean);
 }
 
-/* ---------- Endpoint factory ---------- */
 function createEndpoint(path) {
   return (params = {}) =>
     tmdb(path, params)
@@ -111,7 +106,6 @@ function createEndpoint(path) {
       });
 }
 
-/* ---------- Endpoints ---------- */
 const endpoints = {
   trendingMovies: '/trending/movie/week',
   trendingMoviesDay: '/trending/movie/day',
@@ -132,11 +126,9 @@ export const api = Object.fromEntries(
   ])
 );
 
-/* ---------- Search ---------- */
 api.search = (query, page = 1) =>
   createEndpoint('/search/multi')({ query, page });
 
-/* ---------- Discover ---------- */
 api.discover = async (type, { genre, year, sort = 'popularity.desc', page = 1 } = {}) => {
   const isTV = type === 'series';
   const params = {
@@ -158,7 +150,6 @@ api.discover = async (type, { genre, year, sort = 'popularity.desc', page = 1 } 
   };
 };
 
-/* ---------- Genre row ---------- */
 api.byGenreRow = (type, genreId) => {
   const isTV = type === 'series';
   return tmdb(isTV ? '/discover/tv' : '/discover/movie', {
@@ -173,7 +164,6 @@ api.byGenreRow = (type, genreId) => {
     });
 };
 
-/* ---------- Details ---------- */
 api.details = async (type, tmdbId) => {
   const isTV = type === 'series';
   const data = await tmdb(`/${isTV ? 'tv' : 'movie'}/${tmdbId}`, {
@@ -211,7 +201,6 @@ api.details = async (type, tmdbId) => {
   return base;
 };
 
-/* ---------- Season ---------- */
 api.season = (tmdbId, seasonNum) =>
   tmdb(`/tv/${tmdbId}/season/${seasonNum}`)
     .then(data => data.episodes || [])
@@ -220,7 +209,6 @@ api.season = (tmdbId, seasonNum) =>
       return [];
     });
 
-/* ---------- Recommendations ---------- */
 api.recommendations = (type, tmdbId) => {
   const path = `/${type === 'series' ? 'tv' : 'movie'}/${tmdbId}/recommendations`;
   return tmdb(path)
