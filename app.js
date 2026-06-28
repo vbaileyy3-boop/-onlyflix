@@ -1,5 +1,5 @@
 /* ============================================================
-   app.js — CINEMAX UI + Player
+   app.js — CINEMAX Premium UI + Player
    ============================================================ */
 
 import { loadGenres, getGenres, api } from './api.js';
@@ -8,21 +8,17 @@ import { resolveSources } from './config.js';
 const $ = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 
+/* ---------- Storage ---------- */
 const store = {
   get(key, fallback = []) {
     try {
       const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : fallback;
-    } catch {
-      return fallback;
-    }
+    } catch { return fallback; }
   },
   set(key, val) {
-    try {
-      localStorage.setItem(key, JSON.stringify(val));
-    } catch (err) {
-      console.error(`[store] write failed for ${key}:`, err);
-    }
+    try { localStorage.setItem(key, JSON.stringify(val)); }
+    catch (err) { console.error(`[store] write failed:`, err); }
   }
 };
 
@@ -32,6 +28,7 @@ const KEYS = {
   progress: 'cinemax_progress'
 };
 
+/* ---------- State ---------- */
 const state = {
   history: [],
   list: [],
@@ -46,12 +43,13 @@ const state = {
   searchTimer: null
 };
 
+/* ---------- Helpers ---------- */
 function esc(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function posterStyle(item) {
-  return item.poster ? `background-image:url('${item.poster}')` : 'background:linear-gradient(135deg,#1a1a2e,#16213e)';
+  return item.poster ? `background-image:url('${item.poster}')` : 'background:linear-gradient(135deg,#0a0a12,#1a1a2e)';
 }
 
 function formatTime(t) {
@@ -68,10 +66,7 @@ function indexItems(arr) {
   return arr;
 }
 
-function byId(id) {
-  return state.index[id];
-}
-
+function byId(id) { return state.index[id]; }
 function defaultSeason(tmdbId) {
   return (typeof SEASON_DEFAULTS !== 'undefined' && SEASON_DEFAULTS[tmdbId]) ? SEASON_DEFAULTS[tmdbId] : 1;
 }
@@ -152,68 +147,118 @@ function clearProgress(id) {
   store.set(KEYS.progress, state.progress);
 }
 
-/* ---------- Rendering ---------- */
+/* ---------- Card Rendering (Premium) ---------- */
 function cardHTML(item) {
   indexItems([item]);
-  const genre = item.genres?.[0] ? ` · ${esc(item.genres[0])}` : '';
   const saved = inList(item.id);
+  const genre = item.genres?.[0] || '';
+  const year = item.year || '';
 
-  return `<div class="card" data-id="${esc(item.id)}">
-    <div class="poster" style="${posterStyle(item)}">
-      <span class="badge-type">${item.type === 'series' ? 'TV' : 'Movie'}</span>
-      ${item.rating ? `<span class="badge-rating">★ ${item.rating}</span>` : ''}
-      <button class="bm-btn${saved ? ' active' : ''}" data-bookmark="${esc(item.id)}" title="${saved ? 'Remove from Watchlist' : 'Add to Watchlist'}">${saved ? '✓' : '+'}</button>
-      <div class="play-ico"><div>▶</div></div>
+  return `<div class="card-wrapper" data-id="${esc(item.id)}">
+    <div class="card-poster" style="${posterStyle(item)}">
+      <img src="${item.poster || ''}" alt="${esc(item.title)}" loading="lazy" onerror="this.style.display='none'">
+      <div class="poster-overlay"></div>
+      
+      <span class="badge-4k">4K</span>
+      <span class="badge-hdr">HDR</span>
+      <span class="badge-rating">★ ${item.rating || '—'}</span>
+      
+      <div class="quick-actions">
+        <button class="quick-action-btn play" data-play="${esc(item.id)}" aria-label="Play">▶</button>
+        <button class="quick-action-btn" data-bookmark="${esc(item.id)}" aria-label="${saved ? 'Remove' : 'Add'}">${saved ? '✓' : '+'}</button>
+        <button class="quick-action-btn" data-detail="${esc(item.id)}" aria-label="Details">ⓘ</button>
+      </div>
+      
+      <div class="card-details">
+        <div class="title">${esc(item.title)}</div>
+        <div class="meta">
+          <span>${year || '—'}</span>
+          ${genre ? `<span class="genre-tag">${esc(genre)}</span>` : ''}
+          <span>•</span>
+          <span>${item.rating ? `★ ${item.rating}` : '—'}</span>
+        </div>
+      </div>
     </div>
-    <div class="card-sub">${esc(item.title)}</div>
-    <div class="card-sub2">${item.year || ''}${genre}</div>
   </div>`;
 }
 
 function continueCardHTML(item) {
-  indexItems([item]);
-  const genre = item.genres?.[0] ? ` · ${esc(item.genres[0])}` : '';
-
-  return `<div class="card cw-card" data-id="${esc(item.id)}">
-    <div class="poster" style="${posterStyle(item)}">
-      <span class="badge-type">${item.type === 'series' ? 'TV' : 'Movie'}</span>
-      ${item.rating ? `<span class="badge-rating">★ ${item.rating}</span>` : ''}
-      <button class="cw-remove" data-remove="${esc(item.id)}">×</button>
-      <div class="play-ico"><div>▶</div></div>
-    </div>
-    <div class="card-sub">${esc(item.title)}</div>
-    <div class="card-sub2">${item.year || ''}${genre}</div>
-  </div>`;
+  const base = cardHTML(item);
+  return base.replace(
+    '<div class="quick-actions">',
+    `<div class="quick-actions">
+      <button class="quick-action-btn" data-remove="${esc(item.id)}" aria-label="Remove from history" style="background:rgba(255,0,0,0.15);color:#ff4444;">×</button>`
+  );
 }
 
-function rowHTML(title, items, route) {
+function rowHTML(title, items, routeLink) {
   if (!items?.length) return '';
-  return `<div class="row">
-    <div class="row-head">
-      <h2>${esc(title)}</h2>
-      ${route ? `<span class="more" data-route="${esc(route)}">View all →</span>` : ''}
+  const rowId = `row-${title.replace(/\s/g, '-').replace(/[^a-zA-Z0-9-]/g, '')}`;
+  return `<div class="row-container">
+    <div class="flex items-baseline justify-between px-1 mb-3">
+      <div>
+        <h2 class="section-title">${esc(title)}</h2>
+        <p class="section-subtitle">${items.length} titles</p>
+      </div>
+      ${routeLink ? `<span class="text-white/30 text-sm hover:text-white/60 cursor-pointer transition-colors" data-route="${esc(routeLink)}">View all →</span>` : ''}
     </div>
-    <div class="row-scroll">${items.map(cardHTML).join('')}</div>
+    <div class="row-scroll" id="${rowId}">
+      ${items.map(cardHTML).join('')}
+    </div>
+    <button class="row-nav row-nav-left" data-scroll-left="${rowId}">
+      <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+    </button>
+    <button class="row-nav row-nav-right" data-scroll-right="${rowId}">
+      <svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+    </button>
   </div>`;
 }
 
 function continueRowHTML(items) {
   if (!items?.length) return '';
-  return `<div class="row" id="cwRow">
-    <div class="row-head">
-      <h2>Continue Watching</h2>
-      <span class="more cw-clear" data-clear-history>Clear all</span>
+  return `<div class="row-container" id="cwRow">
+    <div class="flex items-baseline justify-between px-1 mb-3">
+      <div>
+        <h2 class="section-title">Continue Watching</h2>
+        <p class="section-subtitle">${items.length} titles</p>
+      </div>
+      <span class="text-white/30 text-sm hover:text-white/60 cursor-pointer transition-colors" data-clear-history>Clear all</span>
     </div>
-    <div class="row-scroll">${items.map(continueCardHTML).join('')}</div>
+    <div class="row-scroll">
+      ${items.map(continueCardHTML).join('')}
+    </div>
   </div>`;
 }
 
 function watchlistRowHTML(items) {
   if (!items?.length) return '';
-  return `<div class="row" id="watchlistRow">
-    <div class="row-head"><h2>My Watchlist</h2></div>
-    <div class="row-scroll">${items.map(cardHTML).join('')}</div>
+  return `<div class="row-container" id="watchlistRow">
+    <div class="flex items-baseline justify-between px-1 mb-3">
+      <div>
+        <h2 class="section-title">My Watchlist</h2>
+        <p class="section-subtitle">${items.length} titles</p>
+      </div>
+    </div>
+    <div class="row-scroll">
+      ${items.map(cardHTML).join('')}
+    </div>
   </div>`;
+}
+
+/* ---------- Row Navigation ---------- */
+function bindRowNav() {
+  $$('[data-scroll-left]').forEach(btn => {
+    btn.onclick = () => {
+      const target = document.getElementById(btn.dataset.scrollLeft);
+      if (target) target.scrollBy({ left: -300, behavior: 'smooth' });
+    };
+  });
+  $$('[data-scroll-right]').forEach(btn => {
+    btn.onclick = () => {
+      const target = document.getElementById(btn.dataset.scrollRight);
+      if (target) target.scrollBy({ left: 300, behavior: 'smooth' });
+    };
+  });
 }
 
 /* ---------- Hero ---------- */
@@ -224,24 +269,28 @@ function setHero(idx) {
 
   indexItems([item]);
 
-  $('#heroBg').style.cssText =
-    (item.backdrop ? `background-image:url('${item.backdrop}')` : posterStyle(item)) +
-    ';background-size:cover;background-position:center top;';
+  const bg = $('#heroBg');
+  if (bg) {
+    bg.style.cssText = `background-image:url('${item.backdrop || item.poster || ''}');background-size:cover;background-position:center top;`;
+  }
 
-  $('#heroContent').innerHTML = `
-    <span class="hero-badge">${item.type === 'series' ? 'Featured Series' : 'Featured Movie'}</span>
-    <h1 class="hero-title">${esc(item.title)}</h1>
-    <div class="hero-meta">
-      ${item.rating ? `<span class="rating">★ ${item.rating}</span>` : ''}
-      ${item.year ? `<span>${item.year}</span>` : ''}
-      <span class="genres">${esc((item.genres || []).slice(0, 3).join(', '))}</span>
-    </div>
-    <p class="hero-overview">${esc((item.overview || '').slice(0, 210))}${(item.overview || '').length > 210 ? '…' : ''}</p>
-    <div class="hero-actions">
-      <button class="btn btn-play" data-play="${esc(item.id)}">▶ Play</button>
-      <button class="btn btn-info" data-detail="${esc(item.id)}">ⓘ Details</button>
-    </div>
-  `;
+  const content = $('#heroContent');
+  if (content) {
+    content.innerHTML = `
+      <span class="hero-badge">${item.type === 'series' ? 'Featured Series' : 'Featured Movie'}</span>
+      <h1 class="hero-title">${esc(item.title)}</h1>
+      <div class="hero-meta">
+        ${item.rating ? `<span class="rating">★ ${item.rating}</span>` : ''}
+        ${item.year ? `<span>${item.year}</span>` : ''}
+        <span>${esc((item.genres || []).slice(0, 3).join(' · '))}</span>
+      </div>
+      <p class="hero-overview">${esc((item.overview || '').slice(0, 210))}${(item.overview || '').length > 210 ? '…' : ''}</p>
+      <div class="hero-actions">
+        <button class="hero-btn hero-btn-primary" data-play="${esc(item.id)}">▶ Play</button>
+        <button class="hero-btn hero-btn-secondary" data-detail="${esc(item.id)}">ⓘ Details</button>
+      </div>
+    `;
+  }
 
   $$('#heroDots span').forEach((dot, i) => {
     dot.classList.toggle('active', i === idx);
@@ -261,14 +310,16 @@ function initHero(trendData) {
     .filter(x => x.backdrop && x.overview)
     .slice(0, 6);
 
-  $('#heroDots').innerHTML = state.heroItems.map((_, i) => `<span data-i="${i}"></span>`).join('');
-
-  $$('#heroDots span').forEach(dot => {
-    dot.onclick = () => {
-      setHero(+dot.dataset.i);
-      restartHeroTimer();
-    };
-  });
+  const dots = $('#heroDots');
+  if (dots) {
+    dots.innerHTML = state.heroItems.map((_, i) => `<span data-i="${i}"></span>`).join('');
+    $$('#heroDots span').forEach(dot => {
+      dot.onclick = () => {
+        setHero(+dot.dataset.i);
+        restartHeroTimer();
+      };
+    });
+  }
 
   if (state.heroItems.length) setHero(0);
   restartHeroTimer();
@@ -284,14 +335,14 @@ const PERIOD = {
 function trendListHTML(items) {
   return (items || []).slice(0, 8).map((item, i) => {
     indexItems([item]);
-    return `<li class="trend-item" data-id="${esc(item.id)}">
-      <span class="trend-rank">${String(i + 1).padStart(2, '0')}</span>
-      <div class="trend-thumb" style="${posterStyle(item)}"></div>
-      <div class="trend-info">
-        <div class="t">${esc(item.title)}</div>
-        <div class="v">★ ${item.rating}</div>
+    return `<div class="trend-item flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors" data-id="${esc(item.id)}">
+      <span class="text-2xl font-black w-8 text-center ${i === 0 ? 'text-[#FFD700]' : i === 1 ? 'text-white/30' : i === 2 ? 'text-[#cd7f32]' : 'text-white/10'}">${String(i + 1).padStart(2, '0')}</span>
+      <div class="w-12 h-16 rounded-lg bg-cover bg-center flex-shrink-0" style="${posterStyle(item)}"></div>
+      <div class="flex-1 min-w-0">
+        <div class="font-semibold text-sm truncate">${esc(item.title)}</div>
+        <div class="text-white/30 text-xs">★ ${item.rating || '—'}</div>
       </div>
-    </li>`;
+    </div>`;
   }).join('');
 }
 
@@ -304,59 +355,36 @@ async function buildTrending() {
   const m = movies.status === 'fulfilled' ? movies.value : [];
   const s = series.status === 'fulfilled' ? series.value : [];
 
-  return `<div class="trending">
-    <h2>Trending on CINEMAX</h2>
-    <p class="sub">Popularity based on CINEMAX views during the selected period.</p>
-    <div class="trend-cols">
-      <div class="trend-col" data-type="movie">
-        <h3>Top Movies</h3>
-        <div class="period-tabs">
-          <button data-p="24h" class="active">24h</button>
-          <button data-p="7d">7d</button>
-          <button data-p="30d">30d</button>
+  return `<div class="max-w-[1560px] mx-auto px-6 md:px-8 py-8">
+    <h2 class="section-title">Trending Now</h2>
+    <p class="section-subtitle mb-6">Popularity based on CINEMAX views</p>
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div>
+        <h3 class="font-bold text-white/60 text-sm uppercase tracking-wider mb-3">Top Movies</h3>
+        <div class="glass rounded-xl p-2">
+          ${trendListHTML(m)}
         </div>
-        <ul class="trend-list">${trendListHTML(m)}</ul>
       </div>
-      <div class="trend-col" data-type="series">
-        <h3>Top TV Shows</h3>
-        <div class="period-tabs">
-          <button data-p="24h" class="active">24h</button>
-          <button data-p="7d">7d</button>
-          <button data-p="30d">30d</button>
+      <div>
+        <h3 class="font-bold text-white/60 text-sm uppercase tracking-wider mb-3">Top TV Shows</h3>
+        <div class="glass rounded-xl p-2">
+          ${trendListHTML(s)}
         </div>
-        <ul class="trend-list">${trendListHTML(s)}</ul>
       </div>
     </div>
   </div>`;
 }
 
-function bindTrending() {
-  $$('.trend-col').forEach(col => {
-    const type = col.dataset.type;
-    $$('.period-tabs button', col).forEach(btn => {
-      btn.onclick = async () => {
-        $$('.period-tabs button', col).forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        const list = $('.trend-list', col);
-        list.innerHTML = '<li class="trend-skel">Loading…</li>';
-
-        try {
-          const items = await PERIOD[btn.dataset.p][type]();
-          list.innerHTML = trendListHTML(indexItems(items));
-        } catch {
-          list.innerHTML = '<li class="empty">Failed to load.</li>';
-        }
-      };
-    });
-  });
-}
-
 /* ---------- Home ---------- */
 async function renderHome() {
-  $('#hero').style.display = 'flex';
-  $('#infoBlocks').classList.add('show');
-  $('#view').innerHTML = '<div class="boot">Loading…</div>';
+  const hero = $('#hero');
+  if (hero) hero.style.display = 'flex';
+  
+  const info = $('#infoBlocks');
+  if (info) info.style.display = 'block';
+
+  const view = $('#view');
+  if (view) view.innerHTML = '<div class="text-white/30 text-center py-20">Loading CINEMAX…</div>';
 
   try {
     const [trend, nowPlaying, topMovies, popularTV, topTV] = await Promise.all([
@@ -389,19 +417,30 @@ async function renderHome() {
       console.error('[renderHome] trending failed:', err);
     }
 
-    $('#view').innerHTML = html;
-    bindTrending();
+    if (view) view.innerHTML = html;
+    bindRowNav();
     restartHeroTimer();
   } catch (err) {
     console.error('[renderHome] fatal:', err);
-    throw err;
+    if (view) {
+      view.innerHTML = `
+        <div class="max-w-2xl mx-auto text-center py-20 px-6">
+          <h2 class="text-[#8B5CF6] font-bold text-2xl mb-4">⚠️ Failed to load</h2>
+          <p class="text-white/40 mb-6">${esc(err.message || 'Unknown error')}</p>
+          <button onclick="location.reload()" class="hero-btn hero-btn-primary">Retry</button>
+        </div>
+      `;
+    }
   }
 }
 
 /* ---------- Grid ---------- */
 async function renderGrid(type) {
-  $('#hero').style.display = 'none';
-  $('#infoBlocks').classList.remove('show');
+  const hero = $('#hero');
+  if (hero) hero.style.display = 'none';
+  
+  const info = $('#infoBlocks');
+  if (info) info.style.display = 'none';
 
   state.grid = {
     type,
@@ -421,41 +460,51 @@ async function renderGrid(type) {
 
   const allGenres = getGenres();
 
-  $('#view').innerHTML = `
-    <div class="page-head"><h1>${type === 'movie' ? 'Movies' : 'TV Shows'}</h1></div>
-    <div class="filters">
-      <select id="fGenre">
-        <option value="all">All Genres</option>
-        ${allGenres.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('')}
-      </select>
-      <select id="fYear">
-        <option value="all">All Years</option>
-        ${years.map(y => `<option>${y}</option>`).join('')}
-      </select>
-      <select id="fSort">
-        <option value="popularity.desc">Popular</option>
-        <option value="vote_average.desc">Top Rated</option>
-        <option value="${newestSort}">Newest</option>
-        <option value="${azSort}">A–Z</option>
-      </select>
-    </div>
-    <div class="grid" id="grid"><div class="boot">Loading…</div></div>
-    <button class="load-more" id="loadMore" style="display:none">Load More</button>
-  `;
+  const view = $('#view');
+  if (view) {
+    view.innerHTML = `
+      <div class="max-w-[1560px] mx-auto px-6 md:px-8 pt-24 pb-4">
+        <h1 class="text-4xl font-black tracking-tight">${type === 'movie' ? 'Movies' : 'TV Shows'}</h1>
+      </div>
+      <div class="max-w-[1560px] mx-auto px-6 md:px-8 pb-6 flex flex-wrap gap-3">
+        <select id="fGenre" class="filter-pill">
+          <option value="all">All Genres</option>
+          ${allGenres.map(g => `<option value="${esc(g.id)}">${esc(g.name)}</option>`).join('')}
+        </select>
+        <select id="fYear" class="filter-pill">
+          <option value="all">All Years</option>
+          ${years.map(y => `<option>${y}</option>`).join('')}
+        </select>
+        <select id="fSort" class="filter-pill">
+          <option value="popularity.desc">Popular</option>
+          <option value="vote_average.desc">Top Rated</option>
+          <option value="${newestSort}">Newest</option>
+          <option value="${azSort}">A–Z</option>
+        </select>
+      </div>
+      <div class="max-w-[1560px] mx-auto px-6 md:px-8">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="grid">
+          <div class="text-white/30 text-center py-20 col-span-full">Loading…</div>
+        </div>
+        <button class="load-more hidden" id="loadMore">Load More</button>
+      </div>
+    `;
 
-  $('#fGenre').onchange = () => { state.grid.genre = $('#fGenre').value; resetGrid(); };
-  $('#fYear').onchange = () => { state.grid.year = $('#fYear').value; resetGrid(); };
-  $('#fSort').onchange = () => { state.grid.sort = $('#fSort').value; resetGrid(); };
-  $('#loadMore').onclick = () => loadGridPage();
+    $('#fGenre').onchange = () => { state.grid.genre = $('#fGenre').value; resetGrid(); };
+    $('#fYear').onchange = () => { state.grid.year = $('#fYear').value; resetGrid(); };
+    $('#fSort').onchange = () => { state.grid.sort = $('#fSort').value; resetGrid(); };
+    $('#loadMore').onclick = () => loadGridPage();
 
-  resetGrid();
+    resetGrid();
+  }
 }
 
 function resetGrid() {
   state.grid.page = 1;
   state.grid.items = [];
   state.grid.loading = false;
-  $('#grid').innerHTML = '<div class="boot">Loading…</div>';
+  const grid = $('#grid');
+  if (grid) grid.innerHTML = '<div class="text-white/30 text-center py-20 col-span-full">Loading…</div>';
   loadGridPage(true);
 }
 
@@ -473,14 +522,21 @@ async function loadGridPage(fresh = false) {
     state.grid.page = page + 1;
 
     const grid = $('#grid');
-    grid.innerHTML = state.grid.items.length
-      ? state.grid.items.map(cardHTML).join('')
-      : '<div class="empty">No titles match your filters.</div>';
+    if (grid) {
+      grid.innerHTML = state.grid.items.length
+        ? state.grid.items.map(cardHTML).join('')
+        : '<div class="text-white/30 text-center py-20 col-span-full">No titles match your filters.</div>';
+    }
 
-    $('#loadMore').style.display =
-      (state.grid.page <= totalPages && state.grid.items.length) ? 'block' : 'none';
+    const more = $('#loadMore');
+    if (more) {
+      more.style.display = (state.grid.page <= totalPages && state.grid.items.length) ? 'block' : 'none';
+    }
   } catch (err) {
-    $('#grid').innerHTML = `<div class="empty">Failed to load: ${esc(err.message)}</div>`;
+    const grid = $('#grid');
+    if (grid) {
+      grid.innerHTML = `<div class="text-white/30 text-center py-20 col-span-full">Failed to load: ${esc(err.message)}</div>`;
+    }
   } finally {
     state.grid.loading = false;
   }
@@ -488,9 +544,16 @@ async function loadGridPage(fresh = false) {
 
 /* ---------- Genres ---------- */
 async function renderGenres() {
-  $('#hero').style.display = 'none';
-  $('#infoBlocks').classList.remove('show');
-  $('#view').innerHTML = `<div class="page-head"><h1>Browse by Genre</h1></div><div id="gwrap"><div class="boot">Loading…</div></div>`;
+  const hero = $('#hero');
+  if (hero) hero.style.display = 'none';
+  
+  const info = $('#infoBlocks');
+  if (info) info.style.display = 'none';
+
+  const view = $('#view');
+  if (view) {
+    view.innerHTML = `<div class="max-w-[1560px] mx-auto px-6 md:px-8 pt-24 pb-4"><h1 class="text-4xl font-black tracking-tight">Browse by Genre</h1></div><div id="gwrap" class="max-w-[1560px] mx-auto px-6 md:px-8"><div class="text-white/30 text-center py-20">Loading…</div></div>`;
+  }
 
   const allGenres = getGenres();
   const rows = await Promise.all(allGenres.slice(0, 10).map(async (g) => {
@@ -498,53 +561,84 @@ async function renderGenres() {
       const items = await api.byGenreRow('movie', g.id);
       indexItems(items);
       return rowHTML(g.name, items);
-    } catch {
-      return '';
-    }
+    } catch { return ''; }
   }));
 
-  $('#gwrap').innerHTML = rows.join('') || '<div class="empty">No genres.</div>';
+  const wrap = $('#gwrap');
+  if (wrap) {
+    wrap.innerHTML = rows.join('') || '<div class="text-white/30 text-center py-20">No genres available.</div>';
+    bindRowNav();
+  }
 }
 
 /* ---------- Years ---------- */
 async function renderYears() {
-  $('#hero').style.display = 'none';
-  $('#infoBlocks').classList.remove('show');
+  const hero = $('#hero');
+  if (hero) hero.style.display = 'none';
+  
+  const info = $('#infoBlocks');
+  if (info) info.style.display = 'none';
 
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 10 }, (_, i) => currentYear - i);
 
-  $('#view').innerHTML = `<div class="page-head"><h1>Browse by Year</h1></div><div id="ywrap"><div class="boot">Loading…</div></div>`;
+  const view = $('#view');
+  if (view) {
+    view.innerHTML = `<div class="max-w-[1560px] mx-auto px-6 md:px-8 pt-24 pb-4"><h1 class="text-4xl font-black tracking-tight">Browse by Year</h1></div><div id="ywrap" class="max-w-[1560px] mx-auto px-6 md:px-8"><div class="text-white/30 text-center py-20">Loading…</div></div>`;
+  }
 
   const rows = await Promise.all(years.map(async (y) => {
     try {
       const { items } = await api.discover('movie', { year: y, sort: 'popularity.desc', page: 1 });
       indexItems(items);
       return rowHTML(`${y}`, items.slice(0, 16));
-    } catch {
-      return '';
-    }
+    } catch { return ''; }
   }));
 
-  $('#ywrap').innerHTML = rows.join('');
+  const wrap = $('#ywrap');
+  if (wrap) {
+    wrap.innerHTML = rows.join('');
+    bindRowNav();
+  }
 }
 
 /* ---------- Search ---------- */
 async function renderSearch(q) {
-  $('#hero').style.display = 'none';
-  $('#infoBlocks').classList.remove('show');
+  const hero = $('#hero');
+  if (hero) hero.style.display = 'none';
+  
+  const info = $('#infoBlocks');
+  if (info) info.style.display = 'none';
 
   const safeQ = esc(q);
-  $('#view').innerHTML = `<div class="page-head"><h1>Search: "${safeQ}"</h1></div><div class="grid" id="sgrid"><div class="boot">Searching…</div></div>`;
+  const view = $('#view');
+  if (view) {
+    view.innerHTML = `
+      <div class="max-w-[1560px] mx-auto px-6 md:px-8 pt-24 pb-4">
+        <h1 class="text-4xl font-black tracking-tight">Search: "${safeQ}"</h1>
+      </div>
+      <div class="max-w-[1560px] mx-auto px-6 md:px-8">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="sgrid">
+          <div class="text-white/30 text-center py-20 col-span-full">Searching…</div>
+        </div>
+      </div>
+    `;
+  }
 
   try {
     const items = await api.search(q);
     indexItems(items);
-    $('#sgrid').innerHTML = items.length
-      ? items.map(cardHTML).join('')
-      : `<div class="empty">No results for "${safeQ}".</div>`;
+    const grid = $('#sgrid');
+    if (grid) {
+      grid.innerHTML = items.length
+        ? items.map(cardHTML).join('')
+        : `<div class="text-white/30 text-center py-20 col-span-full">No results for "${safeQ}".</div>`;
+    }
   } catch (err) {
-    $('#sgrid').innerHTML = `<div class="empty">Search failed: ${esc(err.message)}</div>`;
+    const grid = $('#sgrid');
+    if (grid) {
+      grid.innerHTML = `<div class="text-white/30 text-center py-20 col-span-full">Search failed: ${esc(err.message)}</div>`;
+    }
   }
 }
 
@@ -571,8 +665,13 @@ async function openDetail(id) {
   if (!stub) return;
 
   clearInterval(state.heroTimer);
-  $('#detailCard').innerHTML = `<button class="detail-close" data-close>&times;</button><div class="boot" style="padding:80px">Loading…</div>`;
-  $('#detailModal').classList.add('open');
+  const card = $('#detailCard');
+  if (card) {
+    card.innerHTML = `<div class="p-8 text-center"><div class="text-white/30">Loading…</div></div>`;
+  }
+  
+  const modal = $('#detailModal');
+  if (modal) modal.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
 
   let item;
@@ -591,64 +690,73 @@ async function openDetail(id) {
       `<option value="${s.season_number}"${s.season_number === startSeason ? ' selected' : ''}>Season ${s.season_number}</option>`
     ).join('');
 
-    episodesHTML = `<div class="eps">
-      <div class="eps-head">
-        <h4>Episodes</h4>
-        <select id="seasonSel" data-tmdb="${esc(item.tmdbId)}">${seasonOpts}</select>
+    episodesHTML = `
+      <div class="mt-6">
+        <div class="flex items-center justify-between mb-3">
+          <h4 class="font-bold">Episodes</h4>
+          <select id="seasonSel" class="filter-pill text-sm" data-tmdb="${esc(item.tmdbId)}">${seasonOpts}</select>
+        </div>
+        <div class="space-y-2" id="epList"><div class="text-white/30 text-sm">Loading episodes…</div></div>
       </div>
-      <div class="ep-list" id="epList"><div class="boot">Loading episodes…</div></div>
-    </div>`;
+    `;
   }
 
   const playLabel = item.type === 'series' ? ` S${startSeason}·E1` : '';
 
-  $('#detailCard').innerHTML = `
-    <button class="detail-close" data-close>&times;</button>
-    <div class="detail-hero" style="${item.backdrop ? `background-image:url('${item.backdrop}')` : posterStyle(item)};background-size:cover;background-position:center">
-      <div class="dfade"></div>
-    </div>
-    <div class="detail-body">
-      <h2>${esc(item.title)}</h2>
-      ${item.tagline ? `<p class="tagline">${esc(item.tagline)}</p>` : ''}
-      <div class="detail-meta">
-        ${item.rating ? `<span class="rating">★ ${item.rating}</span>` : ''}
-        ${item.year ? `<span>${item.year}</span>` : ''}
-        ${item.runtime ? `<span>${item.runtime} min</span>` : (item.latest ? `<span>${esc(item.latest)}</span>` : '')}
-        <span class="tag">${item.type === 'series' ? 'TV Series' : 'Movie'}</span>
-        ${(item.genres || []).map(g => `<span class="tag">${esc(g)}</span>`).join('')}
+  if (card) {
+    card.innerHTML = `
+      <button class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/50 hover:bg-[#8B5CF6] text-white text-2xl transition-colors flex items-center justify-center" data-close>×</button>
+      <div class="h-64 md:h-80 bg-cover bg-center relative" style="${item.backdrop ? `background-image:url('${item.backdrop}')` : posterStyle(item)}">
+        <div class="absolute inset-0 bg-gradient-to-t from-[#0a0a12] to-transparent"></div>
       </div>
-      <p class="ov">${esc(item.overview || '')}</p>
-      ${item.cast?.length ? `<p class="cast"><strong>Cast:</strong> ${esc(item.cast.join(', '))}</p>` : ''}
-      <div class="detail-actions">
-        <button class="btn btn-play" data-play="${esc(item.id)}" data-s="${startSeason}" data-e="1">▶ Play${playLabel}</button>
-        ${item.trailerKey ? `<button class="btn btn-trailer" data-trailer="${esc(item.trailerKey)}">▶ Trailer</button>` : ''}
-        <button class="btn btn-list${inList(item.id) ? ' active' : ''}" data-bookmark="${esc(item.id)}">${inList(item.id) ? '✓ In Watchlist' : '+ Watchlist'}</button>
-        <button class="btn btn-info" data-close>Close</button>
+      <div class="p-6 md:p-8 -mt-16 relative z-10">
+        <h2 class="text-3xl font-black tracking-tight">${esc(item.title)}</h2>
+        ${item.tagline ? `<p class="text-white/40 italic mt-1">${esc(item.tagline)}</p>` : ''}
+        <div class="flex flex-wrap gap-3 items-center text-sm text-white/50 mt-3">
+          ${item.rating ? `<span class="text-[#FFD700] font-bold">★ ${item.rating}</span>` : ''}
+          ${item.year ? `<span>${item.year}</span>` : ''}
+          ${item.runtime ? `<span>${item.runtime} min</span>` : (item.latest ? `<span>${esc(item.latest)}</span>` : '')}
+          <span class="glass px-3 py-0.5 rounded-full text-xs">${item.type === 'series' ? 'TV Series' : 'Movie'}</span>
+          ${(item.genres || []).map(g => `<span class="glass px-3 py-0.5 rounded-full text-xs">${esc(g)}</span>`).join('')}
+        </div>
+        <p class="text-white/60 mt-4 max-w-2xl leading-relaxed">${esc(item.overview || '')}</p>
+        ${item.cast?.length ? `<p class="text-white/40 text-sm mt-3"><strong class="text-white/60">Cast:</strong> ${esc(item.cast.join(', '))}</p>` : ''}
+        <div class="flex flex-wrap gap-3 mt-6">
+          <button class="hero-btn hero-btn-primary" data-play="${esc(item.id)}" data-s="${startSeason}" data-e="1">▶ Play${playLabel}</button>
+          ${item.trailerKey ? `<button class="hero-btn hero-btn-secondary" data-trailer="${esc(item.trailerKey)}">▶ Trailer</button>` : ''}
+          <button class="hero-btn hero-btn-secondary btn-list${inList(item.id) ? ' active' : ''}" data-bookmark="${esc(item.id)}">${inList(item.id) ? '✓ In Watchlist' : '+ Watchlist'}</button>
+          <button class="hero-btn hero-btn-secondary" data-close>Close</button>
+        </div>
+        ${episodesHTML}
+        <div id="moreLikeThis" class="mt-6"></div>
       </div>
-      ${episodesHTML}
-      <div id="moreLikeThis" class="mlt"></div>
-    </div>
-  `;
+    `;
+  }
 
   if (item.type === 'series' && item.seasons?.length) {
     const sel = $('#seasonSel');
     const loadEpisodes = async () => {
-      $('#epList').innerHTML = '<div class="boot">Loading episodes…</div>';
+      const listEl = $('#epList');
+      if (listEl) listEl.innerHTML = '<div class="text-white/30 text-sm">Loading episodes…</div>';
       try {
         const list = await api.season(item.tmdbId, sel.value);
-        $('#epList').innerHTML = list.map(ep => `
-          <div class="ep" data-play="${esc(item.id)}" data-s="${sel.value}" data-e="${ep.episode_number}">
-            <span class="epn">S${sel.value}·E${ep.episode_number}</span>
-            <span class="ept">${esc(ep.name || 'Episode ' + ep.episode_number)}</span>
-            ${ep.vote_average ? `<span class="epr">★ ${ep.vote_average.toFixed(1)}</span>` : ''}
-            <span class="epp">▶</span>
-          </div>
-        `).join('') || '<div class="empty">No episodes.</div>';
+        const epList = $('#epList');
+        if (epList) {
+          epList.innerHTML = list.map(ep => `
+            <div class="flex items-center gap-4 p-3 rounded-xl glass hover:border-[#8B5CF6]/30 cursor-pointer transition-all" data-play="${esc(item.id)}" data-s="${sel.value}" data-e="${ep.episode_number}">
+              <span class="text-white/30 font-bold text-sm w-16">S${sel.value}·E${ep.episode_number}</span>
+              <span class="flex-1 text-sm">${esc(ep.name || 'Episode ' + ep.episode_number)}</span>
+              ${ep.vote_average ? `<span class="text-[#FFD700] text-sm font-bold">★ ${ep.vote_average.toFixed(1)}</span>` : ''}
+              <span class="text-[#8B5CF6]">▶</span>
+            </div>
+          `).join('') || '<div class="text-white/30 text-sm">No episodes available.</div>';
+        }
       } catch {
-        $('#epList').innerHTML = '<div class="empty">Failed to load episodes.</div>';
+        const epList = $('#epList');
+        if (epList) epList.innerHTML = '<div class="text-white/30 text-sm">Failed to load episodes.</div>';
       }
     };
-    sel.onchange = loadEpisodes;
+    if (sel) sel.onchange = loadEpisodes;
     loadEpisodes();
   }
 
@@ -657,51 +765,43 @@ async function openDetail(id) {
     indexItems(recs);
     const box = $('#moreLikeThis');
     if (box) {
-      box.innerHTML = `<h4 class="mlt-head">More Like This</h4><div class="row-scroll">${recs.map(cardHTML).join('')}</div>`;
+      box.innerHTML = `
+        <h4 class="font-bold mb-3">More Like This</h4>
+        <div class="flex gap-3 overflow-x-auto pb-2">
+          ${recs.map(cardHTML).join('')}
+        </div>
+      `;
     }
   }
 }
 
 function closeDetail() {
-  $('#detailModal').classList.remove('open');
-  if (!$('#playerModal').classList.contains('open')) document.body.style.overflow = '';
+  const modal = $('#detailModal');
+  if (modal) modal.classList.add('hidden');
+  document.body.style.overflow = '';
   if ($('#hero').style.display !== 'none') restartHeroTimer();
 }
 
 /* ---------- Trailer ---------- */
 function openTrailer(key) {
-  let overlay = $('#trailerModal');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'trailerModal';
-    overlay.className = 'trailer-modal';
-    overlay.innerHTML = `
-      <div class="trailer-box">
-        <button class="trailer-close" data-close-trailer>×</button>
-        <div class="trailer-frame">
-          <iframe id="trailerIframe" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
-        </div>
-      </div>
-    `;
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) closeTrailer();
-    });
-    document.body.appendChild(overlay);
+  const overlay = $('#trailerModal');
+  if (overlay) {
+    const iframe = $('#trailerIframe');
+    if (iframe) iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(key)}?autoplay=1&rel=0`;
+    overlay.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
   }
-
-  $('#trailerIframe').src = `https://www.youtube.com/embed/${encodeURIComponent(key)}?autoplay=1&rel=0`;
-  overlay.classList.add('open');
-  document.body.style.overflow = 'hidden';
 }
 
 function closeTrailer() {
   const overlay = $('#trailerModal');
-  if (!overlay) return;
-  const iframe = $('#trailerIframe');
-  if (iframe) iframe.src = '';
-  overlay.classList.remove('open');
-  if (!$('#detailModal').classList.contains('open') && !$('#playerModal').classList.contains('open')) {
-    document.body.style.overflow = '';
+  if (overlay) {
+    const iframe = $('#trailerIframe');
+    if (iframe) iframe.src = '';
+    overlay.classList.add('hidden');
+    if (!$('#detailModal').classList.contains('hidden') && !$('#playerModal').classList.contains('hidden')) {
+      document.body.style.overflow = '';
+    }
   }
 }
 
@@ -743,46 +843,60 @@ function renderServerBar(sources, activeIdx) {
   const bar = $('#serverBar');
   if (!bar) return;
 
-  bar.innerHTML = sources.map((s, i) => {
+  // Keep the label
+  let label = bar.querySelector('.text-white\\/30');
+  bar.innerHTML = '';
+  if (label) bar.appendChild(label);
+  else {
+    const lbl = document.createElement('span');
+    lbl.className = 'text-white/30 text-[10px] uppercase tracking-wider w-full mb-1';
+    lbl.textContent = 'Sources';
+    bar.appendChild(lbl);
+  }
+
+  sources.forEach((s, i) => {
     const cached = probeCache[s.url];
     const checked = cached && Date.now() - cached.ts < PROBE_CACHE_TTL;
     const reachable = !checked || cached.ok || s.type === 'embed';
 
-    const dot = s.type === 'embed' ? '' :
-      checked ? (cached.ok ? '<span class="srv-dot srv-ok"></span>' : '<span class="srv-dot srv-bad"></span>') :
-      '<span class="srv-dot srv-pending"></span>';
+    let dot = '';
+    if (s.type !== 'embed') {
+      if (checked) {
+        dot = cached.ok 
+          ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-green-400 mr-1"></span>'
+          : '<span class="inline-block w-1.5 h-1.5 rounded-full bg-red-400 mr-1"></span>';
+      } else {
+        dot = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse mr-1"></span>';
+      }
+    }
 
-    return `<button class="srv-btn${i === activeIdx ? ' active' : ''}${!reachable ? ' srv-unreachable' : ''}" data-srv="${i}" title="${esc(s.url)}">
-      ${dot}<span class="srv-name">${esc(s.label || s.url)}</span><span class="srv-tag">${s.type}</span>
-    </button>`;
-  }).join('');
+    let typeColor = 'text-white/30';
+    if (s.type === 'embed') typeColor = 'text-purple-400/60';
+    else if (s.type === 'hls') typeColor = 'text-blue-400/60';
+    else if (s.type === 'mp4') typeColor = 'text-green-400/60';
 
-  $$('.srv-btn', bar).forEach(btn => {
+    const isActive = i === activeIdx;
+    const btn = document.createElement('button');
+    btn.className = `text-xs px-3 py-1.5 rounded-full border transition-all duration-200 whitespace-nowrap ${
+      isActive 
+        ? 'bg-[#8B5CF6] border-[#8B5CF6] text-white shadow-lg shadow-purple-500/25' 
+        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white hover:border-white/20'
+    } ${!reachable && !isActive ? 'opacity-30 line-through' : ''}`;
+    
+    btn.dataset.srv = i;
+    btn.title = s.url || s.label || '';
+    btn.innerHTML = `${dot}<span>${esc(s.label || s.url || 'Unknown')}</span> <span class="${typeColor} text-[9px] ml-1">${s.type || 'unknown'}</span>`;
+
     btn.onclick = () => {
       if (!state.player) return;
-      const idx = +btn.dataset.srv;
       state.player.userChoseSource = true;
-      const sel = $('#sourceSel');
-      if (sel) sel.value = String(idx);
-      setActiveServer(idx);
+      const idx = +btn.dataset.srv;
       loadSource(state.player.sources[idx]);
+      renderServerBar(state.player.sources, idx);
     };
-  });
-}
 
-function setActiveServer(idx) {
-  $$('.srv-btn', $('#serverBar')).forEach((btn, i) => {
-    btn.classList.toggle('active', i === idx);
+    bar.appendChild(btn);
   });
-}
-
-function updateServerDot(idx, ok) {
-  const btn = $('#serverBar')?.querySelector(`[data-srv="${idx}"]`);
-  if (!btn) return;
-  const dot = btn.querySelector('.srv-dot');
-  if (!dot) return;
-  dot.className = ok ? 'srv-dot srv-ok' : 'srv-dot srv-bad';
-  btn.classList.toggle('srv-unreachable', !ok);
 }
 
 function destroyHls() {
@@ -801,51 +915,44 @@ function loadSource(src) {
   destroyHls();
 
   if (src.type === 'embed') {
-    video.pause();
-    video.removeAttribute('src');
-    video.load();
-    video.style.display = 'none';
-    controls.style.display = 'none';
-    embed.style.display = 'block';
-    embed.src = src.url;
-    note.innerHTML = `Playing via <strong>${esc(src.label)}</strong>. If it doesn't load, <a href="${src.url}" target="_blank" rel="noopener">open in new tab ↗</a>`;
+    if (video) { video.pause(); video.removeAttribute('src'); video.load(); video.style.display = 'none'; }
+    if (controls) controls.style.display = 'none';
+    if (embed) { embed.style.display = 'block'; embed.src = src.url; }
+    if (note) note.innerHTML = `Playing via <strong>${esc(src.label || 'embed')}</strong>. If it doesn't load, <a href="${src.url}" target="_blank" rel="noopener" class="text-[#8B5CF6] hover:underline">open in new tab ↗</a>`;
     return;
   }
 
-  embed.style.display = 'none';
-  embed.removeAttribute('src');
-  video.style.display = 'block';
-  controls.style.display = '';
-  note.textContent = src.type === 'hls' ? 'Adaptive HLS stream.' : 'Direct MP4 source.';
-
-  video.playbackRate = parseFloat($('#speedSel').value) || 1;
-
-  video.onloadedmetadata = () => {
-    const saved = state.progress[state.player.trackId];
-    if (saved && saved > 5 && saved < video.duration - 30) {
-      video.currentTime = saved;
-      note.innerHTML += ` <span style="color:var(--accent);font-weight:bold;">↻ Resumed from ${formatTime(saved)}</span>`;
-    }
-  };
-
-  if (src.type === 'hls') {
-    if (video.canPlayType('application/vnd.apple.mpegurl')) {
-      video.src = src.url;
-    } else if (window.Hls && Hls.isSupported()) {
-      state.hls = new Hls({ enableWorker: true });
-      state.hls.loadSource(src.url);
-      state.hls.attachMedia(video);
-      state.hls.on(Hls.Events.ERROR, (_, data) => {
-        if (data.fatal) note.textContent = 'HLS error — try another server.';
-      });
+  if (embed) { embed.style.display = 'none'; embed.removeAttribute('src'); }
+  if (video) {
+    video.style.display = 'block';
+    video.playbackRate = parseFloat($('#speedSel')?.value || 1);
+    video.onloadedmetadata = () => {
+      const saved = state.progress[state.player?.trackId];
+      if (saved && saved > 5 && saved < video.duration - 30) {
+        video.currentTime = saved;
+        if (note) note.innerHTML += ` <span class="text-[#8B5CF6] font-bold">↻ Resumed from ${formatTime(saved)}</span>`;
+      }
+    };
+    if (src.type === 'hls') {
+      if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = src.url;
+      } else if (window.Hls && Hls.isSupported()) {
+        state.hls = new Hls({ enableWorker: true });
+        state.hls.loadSource(src.url);
+        state.hls.attachMedia(video);
+        state.hls.on(Hls.Events.ERROR, (_, data) => {
+          if (data.fatal && note) note.textContent = 'HLS error — try another server.';
+        });
+      } else {
+        video.src = src.url;
+      }
     } else {
       video.src = src.url;
     }
-  } else {
-    video.src = src.url;
+    if (controls) controls.style.display = '';
+    if (note) note.textContent = src.type === 'hls' ? 'Adaptive HLS stream.' : 'Direct MP4 source.';
+    video.play().catch(() => {});
   }
-
-  video.play().catch(() => {});
 }
 
 function openPlayer(id, season, episode) {
@@ -871,28 +978,16 @@ function openPlayer(id, season, episode) {
   const epTxt = (season && episode) ? ` · S${season}·E${episode}` :
     (item.type === 'series' ? ` · S${defaultSeason(item.tmdbId)}·E1` : '');
 
-  $('#playerTitle').textContent = item.title + epTxt;
+  const title = $('#playerTitle');
+  if (title) title.textContent = item.title + epTxt;
 
   const sources = resolveSources(item, state.player.season, state.player.episode);
   state.player.sources = sources;
 
-  const sel = $('#sourceSel');
-  if (sel) {
-    sel.innerHTML = sources.map((s, i) => `<option value="${i}">${esc(s.label || s.url)}</option>`).join('');
-    sel.onchange = () => {
-      state.player.userChoseSource = true;
-      const idx = +sel.value;
-      setActiveServer(idx);
-      loadSource(sources[idx]);
-    };
-  }
-
-  $('#playerModal').classList.add('open');
-  document.body.style.overflow = 'hidden';
-
-  const bar = $('#serverBar');
-  if (bar && !bar.querySelector('.srv-bar-label')) {
-    bar.insertAdjacentHTML('afterbegin', '<span class="srv-bar-label">Servers</span>');
+  const modal = $('#playerModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
   }
 
   const isPlayable = (s) => s.type === 'embed' || !probeCache[s.url] || probeCache[s.url].ok;
@@ -900,29 +995,25 @@ function openPlayer(id, season, episode) {
   if (defaultIdx === -1) defaultIdx = 0;
 
   renderServerBar(sources, defaultIdx);
-  if (sel) sel.value = String(defaultIdx);
   loadSource(sources[defaultIdx]);
 
   sources.forEach((src, i) => {
     if (src.type === 'embed') return;
     probeSource(src, state.player.probeAbort.signal).then(ok => {
       if (!state.player || state.player.sources !== sources) return;
-      updateServerDot(i, ok);
-
-      const activeBtn = $('#serverBar')?.querySelector('.srv-btn.active');
+      const activeBtn = $('#serverBar')?.querySelector('[data-srv].bg-[#8B5CF6]');
       const activeIdx = activeBtn ? +activeBtn.dataset.srv : defaultIdx;
-
       if (!ok && activeIdx === i && !state.player.userChoseSource) {
-        const nextBtn = $$('#serverBar .srv-btn').find(
-          b => !b.classList.contains('srv-unreachable') && +b.dataset.srv !== i
+        const nextBtn = $$('#serverBar [data-srv]').find(
+          b => !b.classList.contains('opacity-30') && +b.dataset.srv !== i
         );
         if (nextBtn) {
           const nextIdx = +nextBtn.dataset.srv;
-          if (sel) sel.value = String(nextIdx);
-          setActiveServer(nextIdx);
           loadSource(sources[nextIdx]);
+          renderServerBar(sources, nextIdx);
         } else {
-          $('#playerNote').innerHTML = `⚠️ No reachable servers for <strong>${esc(item.title)}</strong>.`;
+          const note = $('#playerNote');
+          if (note) note.innerHTML = `⚠️ No reachable servers for <strong>${esc(item.title)}</strong>.`;
         }
       }
     });
@@ -935,74 +1026,78 @@ function closePlayer() {
 
   if (state.player?.probeAbort) state.player.probeAbort.abort();
 
-  if (state.player?.trackId && !isNaN(video.currentTime) && video.currentTime > 5) {
+  if (state.player?.trackId && video && !isNaN(video.currentTime) && video.currentTime > 5) {
     saveProgress(state.player.trackId, video.currentTime);
   }
 
   destroyHls();
-  video.pause();
-  video.removeAttribute('src');
-  video.load();
-  embed.removeAttribute('src');
+  if (video) { video.pause(); video.removeAttribute('src'); video.load(); }
+  if (embed) embed.removeAttribute('src');
 
-  $('#playerModal').classList.remove('open');
-  if (!$('#detailModal').classList.contains('open')) document.body.style.overflow = '';
-  if ($('#hero').style.display !== 'none' && !$('#detailModal').classList.contains('open')) {
-    restartHeroTimer();
-  }
+  const modal = $('#playerModal');
+  if (modal) modal.classList.add('hidden');
+  document.body.style.overflow = '';
+  if ($('#hero').style.display !== 'none') restartHeroTimer();
 }
 
 function bindPlayer() {
   const video = $('#videoEl');
+  if (!video) return;
 
-  $('#btnPlay').onclick = () => {
-    if (video.paused) {
-      video.play();
-      $('#btnPlay').textContent = '❚❚';
-    } else {
-      video.pause();
-      $('#btnPlay').textContent = '▶';
-    }
-  };
+  const btnPlay = $('#btnPlay');
+  const btnBack = $('#btnBack');
+  const btnFwd = $('#btnFwd');
+  const btnMute = $('#btnMute');
+  const volSlider = $('#volSlider');
+  const speedSel = $('#speedSel');
+  const btnFull = $('#btnFull');
+  const progress = $('#progress');
+  const timeLabel = $('#timeLabel');
 
-  $('#btnBack').onclick = () => {
-    video.currentTime = Math.max(0, video.currentTime - 10);
-  };
+  if (btnPlay) {
+    btnPlay.onclick = () => {
+      if (video.paused) { video.play(); btnPlay.textContent = '⏸'; }
+      else { video.pause(); btnPlay.textContent = '▶'; }
+    };
+  }
 
-  $('#btnFwd').onclick = () => {
-    video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
-  };
+  if (btnBack) btnBack.onclick = () => video.currentTime = Math.max(0, video.currentTime - 10);
+  if (btnFwd) btnFwd.onclick = () => video.currentTime = Math.min(video.duration || 0, video.currentTime + 10);
 
-  $('#btnMute').onclick = () => {
-    video.muted = !video.muted;
-    $('#btnMute').textContent = video.muted ? '🔇' : '🔊';
-  };
+  if (btnMute) {
+    btnMute.onclick = () => {
+      video.muted = !video.muted;
+      btnMute.textContent = video.muted ? '🔇' : '🔊';
+    };
+  }
 
-  $('#volSlider').oninput = (e) => {
-    video.volume = +e.target.value;
-    video.muted = false;
-    $('#btnMute').textContent = video.volume === 0 ? '🔇' : '🔊';
-  };
+  if (volSlider) {
+    volSlider.oninput = (e) => {
+      video.volume = +e.target.value;
+      video.muted = false;
+      if (btnMute) btnMute.textContent = video.volume === 0 ? '🔇' : '🔊';
+    };
+  }
 
-  $('#speedSel').onchange = (e) => {
-    video.playbackRate = parseFloat(e.target.value);
-  };
+  if (speedSel) {
+    speedSel.onchange = (e) => video.playbackRate = parseFloat(e.target.value);
+  }
 
-  $('#btnFull').onclick = () => {
-    const wrap = $('#videoWrap');
-    if (!document.fullscreenElement) {
-      wrap.requestFullscreen?.();
-    } else {
-      document.exitFullscreen?.();
-    }
-  };
+  if (btnFull) {
+    btnFull.onclick = () => {
+      const wrap = $('#videoWrap');
+      if (!document.fullscreenElement) wrap?.requestFullscreen?.();
+      else document.exitFullscreen?.();
+    };
+  }
 
   let lastSave = 0;
 
   video.ontimeupdate = () => {
     const pct = (video.currentTime / (video.duration || 1)) * 100;
-    $('#progressFilled').style.width = pct + '%';
-    $('#timeLabel').textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+    const filled = $('#progressFilled');
+    if (filled) filled.style.width = pct + '%';
+    if (timeLabel) timeLabel.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
 
     if (state.player?.trackId && video.currentTime > 5) {
       const now = Date.now();
@@ -1020,23 +1115,25 @@ function bindPlayer() {
   };
 
   video.onended = () => {
-    $('#btnPlay').textContent = '▶';
+    if (btnPlay) btnPlay.textContent = '▶';
     if (state.player?.trackId) clearProgress(state.player.trackId);
   };
 
-  $('#progress').onclick = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    video.currentTime = ((e.clientX - rect.left) / rect.width) * (video.duration || 0);
-  };
+  if (progress) {
+    progress.onclick = (e) => {
+      const rect = e.currentTarget.getBoundingClientRect();
+      video.currentTime = ((e.clientX - rect.left) / rect.width) * (video.duration || 0);
+    };
+  }
 }
 
-/* ---------- Event delegation ---------- */
+/* ---------- Event Delegation ---------- */
 document.addEventListener('click', (e) => {
   const remove = e.target.closest('[data-remove]');
   if (remove) {
     e.preventDefault();
     removeHistory(remove.dataset.remove);
-    remove.closest('.card')?.remove();
+    remove.closest('.card-wrapper')?.remove();
     if (!state.history.length) $('#cwRow')?.remove();
     return;
   }
@@ -1050,12 +1147,10 @@ document.addEventListener('click', (e) => {
     bookmark.textContent = bookmark.classList.contains('btn-list') ?
       (nowIn ? '✓ In Watchlist' : '+ Watchlist') :
       (nowIn ? '✓' : '+');
-    bookmark.title = nowIn ? 'Remove from Watchlist' : 'Add to Watchlist';
-
     if (!nowIn) {
       const row = bookmark.closest('#watchlistRow');
       if (row) {
-        bookmark.closest('.card')?.remove();
+        bookmark.closest('.card-wrapper')?.remove();
         if (!state.list.length) row.remove();
       }
     }
@@ -1110,7 +1205,7 @@ document.addEventListener('click', (e) => {
     return;
   }
 
-  const card = e.target.closest('.card[data-id]');
+  const card = e.target.closest('.card-wrapper[data-id]');
   if (card) {
     openDetail(card.dataset.id);
     return;
@@ -1122,6 +1217,7 @@ document.addEventListener('click', (e) => {
   }
 });
 
+/* ---------- Keyboard Shortcuts ---------- */
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Escape') {
     closeTrailer();
@@ -1130,24 +1226,21 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  if (!$('#playerModal').classList.contains('open')) return;
+  const modal = $('#playerModal');
+  if (!modal || modal.classList.contains('hidden')) return;
 
   const tag = (e.target.tagName || '').toLowerCase();
   if (['input', 'select', 'textarea'].includes(tag)) return;
 
   const video = $('#videoEl');
+  if (!video) return;
 
   switch (e.key) {
     case ' ':
     case 'k':
       e.preventDefault();
-      if (video.paused) {
-        video.play();
-        $('#btnPlay').textContent = '❚❚';
-      } else {
-        video.pause();
-        $('#btnPlay').textContent = '▶';
-      }
+      if (video.paused) { video.play(); $('#btnPlay').textContent = '⏸'; }
+      else { video.pause(); $('#btnPlay').textContent = '▶'; }
       break;
     case 'ArrowLeft':
       e.preventDefault();
@@ -1161,11 +1254,8 @@ document.addEventListener('keydown', (e) => {
     case 'F':
       e.preventDefault();
       const wrap = $('#videoWrap');
-      if (!document.fullscreenElement) {
-        wrap.requestFullscreen?.();
-      } else {
-        document.exitFullscreen?.();
-      }
+      if (!document.fullscreenElement) wrap?.requestFullscreen?.();
+      else document.exitFullscreen?.();
       break;
     case 'm':
     case 'M':
@@ -1177,26 +1267,29 @@ document.addEventListener('keydown', (e) => {
 });
 
 /* ---------- Search ---------- */
-$('#searchInput').addEventListener('input', (e) => {
-  clearTimeout(state.searchTimer);
-  const query = e.target.value.trim();
-  state.searchTimer = setTimeout(() => {
-    if (query.length >= 2) {
-      renderSearch(query);
-    } else if (!query.length) {
-      route('home');
-    }
-  }, 300);
-});
+const searchInput = $('#searchInput');
+if (searchInput) {
+  searchInput.addEventListener('input', (e) => {
+    clearTimeout(state.searchTimer);
+    const query = e.target.value.trim();
+    state.searchTimer = setTimeout(() => {
+      if (query.length >= 2) renderSearch(query);
+      else if (!query.length) route('home');
+    }, 300);
+  });
+}
 
-/* ---------- Header scroll ---------- */
+/* ---------- Header Scroll ---------- */
 window.addEventListener('scroll', () => {
-  $('#header').classList.toggle('scrolled', window.scrollY > 30);
+  const header = $('#header');
+  if (header) header.classList.toggle('scrolled', window.scrollY > 30);
 });
 
 /* ---------- Init ---------- */
 async function init() {
-  $('#year').textContent = new Date().getFullYear();
+  const year = $('#year');
+  if (year) year.textContent = new Date().getFullYear();
+  
   bindPlayer();
   loadProgress();
 
@@ -1205,19 +1298,17 @@ async function init() {
     await renderHome();
   } catch (err) {
     console.error('[init] fatal:', err);
-    $('#view').innerHTML = `
-      <div class="empty" style="padding:80px 28px;max-width:800px;margin:0 auto;text-align:left;">
-        <h2 style="color:var(--accent);margin-bottom:20px;">⚠️ Failed to load</h2>
-        <p style="color:var(--text);margin-bottom:10px;"><strong>Error:</strong> ${esc(err.message || 'Unknown error')}</p>
-        <p style="color:var(--muted);font-size:14px;margin-top:20px;border-top:1px solid var(--line);padding-top:20px;">
-          Check console. Make sure:<br>
-          • TMDB API key is valid in config.js<br>
-          • Internet connection is working<br>
-          • CORS isn't blocking requests
-        </p>
-        <button onclick="location.reload()" style="margin-top:20px;background:var(--accent);color:#fff;border:none;padding:12px 30px;border-radius:8px;cursor:pointer;font-weight:700;">Retry</button>
-      </div>
-    `;
+    const view = $('#view');
+    if (view) {
+      view.innerHTML = `
+        <div class="max-w-2xl mx-auto text-center py-20 px-6">
+          <h2 class="text-[#8B5CF6] font-bold text-2xl mb-4">⚠️ Failed to load</h2>
+          <p class="text-white/40 mb-6">${esc(err.message || 'Unknown error')}</p>
+          <p class="text-white/20 text-sm mb-6">Check console. Make sure TMDB API key is valid.</p>
+          <button onclick="location.reload()" class="hero-btn hero-btn-primary">Retry</button>
+        </div>
+      `;
+    }
   }
 }
 
