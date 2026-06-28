@@ -1,15 +1,13 @@
 /* ============================================================
-   app.js — OnlyFlix UI + Player
+   app.js — CINEMAX UI + Player
    ============================================================ */
 
 import { loadGenres, getGenres, api } from './api.js';
 import { resolveSources } from './config.js';
 
-/* ---------- DOM shortcuts ---------- */
 const $ = (sel, ctx = document) => ctx.querySelector(sel);
 const $$ = (sel, ctx = document) => [...ctx.querySelectorAll(sel)];
 
-/* ---------- Storage ---------- */
 const store = {
   get(key, fallback = []) {
     try {
@@ -29,12 +27,11 @@ const store = {
 };
 
 const KEYS = {
-  history: 'onlyflix_history',
-  list: 'onlyflix_mylist',
-  progress: 'onlyflix_progress'
+  history: 'cinemax_history',
+  list: 'cinemax_list',
+  progress: 'cinemax_progress'
 };
 
-/* ---------- State ---------- */
 const state = {
   history: [],
   list: [],
@@ -49,13 +46,12 @@ const state = {
   searchTimer: null
 };
 
-/* ---------- Helpers ---------- */
 function esc(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 function posterStyle(item) {
-  return item.poster ? `background-image:url('${item.poster}')` : 'background:#1a1a24';
+  return item.poster ? `background-image:url('${item.poster}')` : 'background:linear-gradient(135deg,#1a1a2e,#16213e)';
 }
 
 function formatTime(t) {
@@ -80,7 +76,6 @@ function defaultSeason(tmdbId) {
   return (typeof SEASON_DEFAULTS !== 'undefined' && SEASON_DEFAULTS[tmdbId]) ? SEASON_DEFAULTS[tmdbId] : 1;
 }
 
-/* ---------- Storage operations ---------- */
 function loadHistory() {
   state.history = store.get(KEYS.history);
   return state.history;
@@ -167,7 +162,7 @@ function cardHTML(item) {
     <div class="poster" style="${posterStyle(item)}">
       <span class="badge-type">${item.type === 'series' ? 'TV' : 'Movie'}</span>
       ${item.rating ? `<span class="badge-rating">★ ${item.rating}</span>` : ''}
-      <button class="bm-btn${saved ? ' active' : ''}" data-bookmark="${esc(item.id)}" title="${saved ? 'Remove from My List' : 'Add to My List'}">${saved ? '✓' : '+'}</button>
+      <button class="bm-btn${saved ? ' active' : ''}" data-bookmark="${esc(item.id)}" title="${saved ? 'Remove from Watchlist' : 'Add to Watchlist'}">${saved ? '✓' : '+'}</button>
       <div class="play-ico"><div>▶</div></div>
     </div>
     <div class="card-sub">${esc(item.title)}</div>
@@ -213,10 +208,10 @@ function continueRowHTML(items) {
   </div>`;
 }
 
-function myListRowHTML(items) {
+function watchlistRowHTML(items) {
   if (!items?.length) return '';
-  return `<div class="row" id="myListRow">
-    <div class="row-head"><h2>My List</h2></div>
+  return `<div class="row" id="watchlistRow">
+    <div class="row-head"><h2>My Watchlist</h2></div>
     <div class="row-scroll">${items.map(cardHTML).join('')}</div>
   </div>`;
 }
@@ -244,7 +239,7 @@ function setHero(idx) {
     <p class="hero-overview">${esc((item.overview || '').slice(0, 210))}${(item.overview || '').length > 210 ? '…' : ''}</p>
     <div class="hero-actions">
       <button class="btn btn-play" data-play="${esc(item.id)}">▶ Play</button>
-      <button class="btn btn-info" data-detail="${esc(item.id)}">ⓘ More Info</button>
+      <button class="btn btn-info" data-detail="${esc(item.id)}">ⓘ Details</button>
     </div>
   `;
 
@@ -310,8 +305,8 @@ async function buildTrending() {
   const s = series.status === 'fulfilled' ? series.value : [];
 
   return `<div class="trending">
-    <h2>Trending on OnlyFlix</h2>
-    <p class="sub">Popularity based on OnlyFlix views during the selected period.</p>
+    <h2>Trending on CINEMAX</h2>
+    <p class="sub">Popularity based on CINEMAX views during the selected period.</p>
     <div class="trend-cols">
       <div class="trend-col" data-type="movie">
         <h3>Top Movies</h3>
@@ -381,7 +376,7 @@ async function renderHome() {
 
     let html = '';
     if (state.history.length) html += continueRowHTML(state.history);
-    if (state.list.length) html += myListRowHTML(state.list);
+    if (state.list.length) html += watchlistRowHTML(state.list);
     html += rowHTML('Trending Now', trend, 'movie');
     html += rowHTML('Now Playing', nowPlaying, 'movie');
     html += rowHTML('Top Rated Movies', topMovies, 'movie');
@@ -627,7 +622,7 @@ async function openDetail(id) {
       <div class="detail-actions">
         <button class="btn btn-play" data-play="${esc(item.id)}" data-s="${startSeason}" data-e="1">▶ Play${playLabel}</button>
         ${item.trailerKey ? `<button class="btn btn-trailer" data-trailer="${esc(item.trailerKey)}">▶ Trailer</button>` : ''}
-        <button class="btn btn-list${inList(item.id) ? ' active' : ''}" data-bookmark="${esc(item.id)}">${inList(item.id) ? '✓ In My List' : '+ My List'}</button>
+        <button class="btn btn-list${inList(item.id) ? ' active' : ''}" data-bookmark="${esc(item.id)}">${inList(item.id) ? '✓ In Watchlist' : '+ Watchlist'}</button>
         <button class="btn btn-info" data-close>Close</button>
       </div>
       ${episodesHTML}
@@ -829,7 +824,7 @@ function loadSource(src) {
     const saved = state.progress[state.player.trackId];
     if (saved && saved > 5 && saved < video.duration - 30) {
       video.currentTime = saved;
-      note.innerHTML += ` <span style="color:var(--gold);font-weight:bold;">↻ Resumed from ${formatTime(saved)}</span>`;
+      note.innerHTML += ` <span style="color:var(--accent);font-weight:bold;">↻ Resumed from ${formatTime(saved)}</span>`;
     }
   };
 
@@ -1053,12 +1048,12 @@ document.addEventListener('click', (e) => {
     const nowIn = toggleList(item);
     bookmark.classList.toggle('active', nowIn);
     bookmark.textContent = bookmark.classList.contains('btn-list') ?
-      (nowIn ? '✓ In My List' : '+ My List') :
+      (nowIn ? '✓ In Watchlist' : '+ Watchlist') :
       (nowIn ? '✓' : '+');
-    bookmark.title = nowIn ? 'Remove from My List' : 'Add to My List';
+    bookmark.title = nowIn ? 'Remove from Watchlist' : 'Add to Watchlist';
 
     if (!nowIn) {
-      const row = bookmark.closest('#myListRow');
+      const row = bookmark.closest('#watchlistRow');
       if (row) {
         bookmark.closest('.card')?.remove();
         if (!state.list.length) row.remove();
