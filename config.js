@@ -1,5 +1,5 @@
 /* ============================================================
-   config.js — TMDB config + source resolver
+   config.js — CINEMAX config + source resolver
    ============================================================ */
 
 export const TMDB = {
@@ -100,17 +100,14 @@ export function resolveSources(item, season, episode) {
 
   const sources = [];
 
-  // Episode-specific
   if (isTV) {
     const epKey = `tv:${id}:S${s}E${e}`;
     if (SOURCE_REGISTRY[epKey]) sources.push(...SOURCE_REGISTRY[epKey]);
   }
 
-  // Show/movie-level
   const key = isTV ? `tv:${id}` : `movie:${id}`;
   if (SOURCE_REGISTRY[key]) sources.push(...SOURCE_REGISTRY[key]);
 
-  // Generic embeds
   for (const server of EMBED_SERVERS) {
     sources.push({
       label: server.name,
@@ -119,7 +116,6 @@ export function resolveSources(item, season, episode) {
     });
   }
 
-  // Demo
   const demo = DEMO_POOL[Math.abs(parseInt(id, 10) || 0) % DEMO_POOL.length];
   for (const variant of demo.variants) {
     sources.push({
@@ -129,10 +125,8 @@ export function resolveSources(item, season, episode) {
     });
   }
 
-  // Fallback
   sources.push(...UNIVERSAL_FALLBACK);
 
-  // Deduplicate
   const seen = new Set();
   return sources.filter(src => {
     if (!src.url || seen.has(src.url)) return false;
