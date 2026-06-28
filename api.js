@@ -1,42 +1,48 @@
 /* ============================================================
-   api.js — TMDB API wrapper with genre cache & normalization
+   api.js — TMDB client with genre cache, normalization, retry
    ============================================================ */
 
-const GENRE_MAP = {};
-let ALL_GENRES = [];
+const genreMap = new Map();
+let allGenres = [];
 
-/* ---------- Core fetch with retry ---------- */
-async function tmdb(path, params = {}, _retry = 0) {
+/* ---------- Core: fetch with exponential backoff ---------- */
+async function tmdb(path, params = {}, retries = 2) {
   const url = new URL(TMDB.BASE + path);
   url.searchParams.set("api_key", TMDB.KEY);
   
-  for (const [k, v] of Object.entries(params)) {
-    if (v != null && v !== "") url.searchParams.set(k, v);
+  for (const [key, val] of Object.entries(params)) {
+    if (val != null && val !== "") url.searchParams.set(key, val);
+  }
+
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const res = await fetch(url);
+    
+    if (res.status === 429 && attempt < retries) {
+      const ms = (+res.headers.get("retry-after") || 1) * 1000;
+      await new Promise(r => setTimeout(r, ms));
+      continue;
+    }
+    
+    if (!res.ok) throw new Error(`TMDB ${res.status} ${path}`);
+    return res.json();
   }
   
-  const r = await fetch(url);
-  if (r.status === 429 && _retry < 2) {
-    const wait = (+r.headers.get("retry-after") || 1) * 1000;
-    await new Promise(res => setTimeout(res, wait));
-    return tmdb(path, params, _retry + 1);
-  }
-  if (!r.ok) throw new Error(`TMDB ${r.status} ${path}`);
-  return r.json();
+  throw new Error(`TMDB rate limit exceeded for ${path}`);
 }
 
-/* ---------- Load genres ---------- */
+/* ---------- Genre cache ---------- */
 async function loadGenres() {
   try {
-    const [m, t] = await Promise.all([
+    const [movies, tv] = await Promise.all([
       tmdb("/genre/movie/list"),
       tmdb("/genre/tv/list"),
     ]);
-    
-    const all = [...m.genres, ...t.genres];
-    all.forEach(g => GENRE_MAP[g.id] = g.name);
-    
+
+    const all = [...movies.genres, ...tv.genres];
+    for (const g of all) genreMap.set(g.id, g.name);
+
     const seen = new Set();
-    ALL_GENRES = all
+    allGenres = all
       .filter(g => !seen.has(g.name) && seen.add(g.name))
       .sort((a, b) => a.name.localeCompare(b.name));
   } catch (err) {
@@ -46,54 +52,48 @@ async function loadGenres() {
 }
 
 /* ---------- Normalize ---------- */
-function norm(x) {
-  if (!x?.id || x.media_type === "person") return null;
-  
-  const isTV = x.media_type === "tv" || 
-               (!x.media_type && x.name && !x.title);
-  
-  const date = x.release_date || x.first_air_date || "";
-  const year = /^\d{4}$/.test(date.slice(0, 4)) ? +date.slice(0, 4) : null;
-  
+function normalize(item) {
+  if (!item?.id || item.media_type === "person") return null;
+
+  const isTV = item.media_type === "tv" || (!item.media_type && item.name && !item.title);
+  const date = item.release_date || item.first_air_date || "";
+  const year = /^\d{4}/.test(date) ? +date.slice(0, 4) : null;
+
   return {
-    id: `${isTV ? "tv" : "movie"}-${x.id}`,
-    tmdbId: x.id,
+    id: `${isTV ? "tv" : "movie"}-${item.id}`,
+    tmdbId: item.id,
     type: isTV ? "series" : "movie",
-    title: x.title || x.name || "Untitled",
+    title: item.title || item.name || "Untitled",
     year,
-    rating: x.vote_average ? +x.vote_average.toFixed(1) : 0,
-    votes: x.vote_count || 0,
-    overview: x.overview || "No description available.",
-    poster: x.poster_path ? TMDB.IMG + x.poster_path : null,
-    backdrop: x.backdrop_path ? TMDB.IMG_LG + x.backdrop_path : 
-              x.poster_path ? TMDB.IMG_LG + x.poster_path : null,
-    genres: (x.genre_ids || []).map(id => GENRE_MAP[id]).filter(Boolean),
-    genreIds: x.genre_ids || [],
+    rating: item.vote_average ? +item.vote_average.toFixed(1) : 0,
+    votes: item.vote_count || 0,
+    overview: item.overview || "No description available.",
+    poster: item.poster_path ? TMDB.IMG + item.poster_path : null,
+    backdrop: item.backdrop_path ? TMDB.IMG_LG + item.backdrop_path : 
+              item.poster_path ? TMDB.IMG_LG + item.poster_path : null,
+    genres: (item.genre_ids || []).map(id => genreMap.get(id)).filter(Boolean),
+    genreIds: item.genre_ids || [],
   };
 }
 
-function normList(arr) { 
-  if (!arr || !Array.isArray(arr)) return [];
-  return arr.map(norm).filter(Boolean); 
+function normalizeList(arr) {
+  if (!Array.isArray(arr)) return [];
+  return arr.map(normalize).filter(Boolean);
 }
 
-/* ---------- Generic endpoint factory ---------- */
-function endpoint(path, transform = null) {
-  return (params = {}) => 
+/* ---------- Endpoint factory ---------- */
+function createEndpoint(path, transform) {
+  return (params = {}) =>
     tmdb(path, params)
-      .then(d => {
-        // If transform is provided, use it, otherwise extract results and normalize
-        if (transform) return transform(d);
-        return normList(d.results);
-      })
-      .catch(err => { 
-        console.error(`[api] ${path}:`, err); 
-        throw err; 
+      .then(data => transform ? transform(data) : normalizeList(data.results))
+      .catch(err => {
+        console.error(`[api] ${path}:`, err);
+        throw err;
       });
 }
 
-/* ---------- Endpoint config ---------- */
-const endpoints = {
+/* ---------- Endpoints ---------- */
+const endpointConfig = {
   trendingMovies: "/trending/movie/week",
   trendingMoviesDay: "/trending/movie/day",
   trendingTV: "/trending/tv/week",
@@ -107,37 +107,39 @@ const endpoints = {
 };
 
 const api = Object.fromEntries(
-  Object.entries(endpoints).map(([name, path]) => [
+  Object.entries(endpointConfig).map(([name, path]) => [
     name,
-    (p = 1) => endpoint(path)({ page: p })
+    (page = 1) => createEndpoint(path)({ page }),
   ])
 );
 
 /* ---------- Search ---------- */
-api.search = (q, p = 1) => 
-  endpoint("/search/multi")({ query: q, page: p });
+api.search = (query, page = 1) =>
+  createEndpoint("/search/multi")({ query, page });
 
 /* ---------- Discover ---------- */
 api.discover = (type, { genre, year, sort = "popularity.desc", page = 1 } = {}) => {
   const isTV = type === "series";
-  const params = { 
-    sort_by: sort || "popularity.desc", 
-    page, 
-    "vote_count.gte": 30 
+  const params = {
+    sort_by: sort,
+    page,
+    "vote_count.gte": 30,
   };
   if (genre && genre !== "all") params.with_genres = genre;
   if (year && year !== "all") {
-    params[isTV ? "first_air_date_year" : "primary_release_year"] = year;
+    const key = isTV ? "first_air_date_year" : "primary_release_year";
+    params[key] = year;
   }
-  
-  return tmdb(isTV ? "/discover/tv" : "/discover/movie", params)
-    .then(d => ({ 
-      items: normList(d.results), 
-      totalPages: d.total_pages ?? 1 
+
+  const path = isTV ? "/discover/tv" : "/discover/movie";
+  return tmdb(path, params)
+    .then(data => ({
+      items: normalizeList(data.results),
+      totalPages: data.total_pages ?? 1,
     }))
-    .catch(err => { 
-      console.error("[api] discover:", err); 
-      throw err; 
+    .catch(err => {
+      console.error("[api] discover:", err);
+      throw err;
     });
 };
 
@@ -149,64 +151,67 @@ api.byGenreRow = (type, genreId) => {
     sort_by: "popularity.desc",
     "vote_count.gte": 50,
   })
-    .then(d => normList(d.results).slice(0, 16))
-    .catch(err => { 
-      console.error("[api] byGenreRow:", err); 
-      throw err; 
+    .then(data => normalizeList(data.results).slice(0, 16))
+    .catch(err => {
+      console.error("[api] byGenreRow:", err);
+      throw err;
     });
 };
 
 /* ---------- Details ---------- */
 api.details = async (type, tmdbId) => {
   const isTV = type === "series";
-  const d = await tmdb(`/${isTV ? "tv" : "movie"}/${tmdbId}`, {
+  const data = await tmdb(`/${isTV ? "tv" : "movie"}/${tmdbId}`, {
     append_to_response: "credits,videos",
   });
-  
-  const base = norm({
-    ...d,
+
+  const base = normalize({
+    ...data,
     media_type: isTV ? "tv" : "movie",
-    genre_ids: (d.genres || []).map(g => g.id),
+    genre_ids: (data.genres || []).map(g => g.id),
   });
-  
-  if (!base) throw new Error(`norm() returned null for tmdbId ${tmdbId}`);
-  
-  base.genres = (d.genres || []).map(g => g.name);
-  base.runtime = isTV ? null : d.runtime;
-  base.tagline = d.tagline || "";
-  base.cast = (d.credits?.cast || []).slice(0, 6).map(c => c.name);
-  
-  const trailer = (d.videos?.results || []).find(
+
+  if (!base) throw new Error(`normalize() returned null for ID ${tmdbId}`);
+
+  base.genres = (data.genres || []).map(g => g.name);
+  base.runtime = isTV ? null : data.runtime;
+  base.tagline = data.tagline || "";
+  base.cast = (data.credits?.cast || []).slice(0, 6).map(c => c.name);
+
+  const trailer = (data.videos?.results || []).find(
     v => v.site === "YouTube" && v.type === "Trailer"
   );
   base.trailerKey = trailer?.key || null;
-  
+
   if (isTV) {
-    const seasons = (d.seasons || []).filter(s => s.season_number > 0);
-    const numSeasons = d.number_of_seasons ?? 
-                      seasons[seasons.length - 1]?.season_number ?? 1;
+    const seasons = (data.seasons || []).filter(s => s.season_number > 0);
+    const numSeasons = data.number_of_seasons ??
+                      seasons[seasons.length - 1]?.season_number ??
+                      1;
     base.seasons = seasons;
     base.lastSeason = numSeasons;
     base.latest = `${numSeasons} season${numSeasons !== 1 ? "s" : ""}`;
   }
-  
+
   return base;
 };
 
 /* ---------- Season episodes ---------- */
 api.season = (tmdbId, seasonNum) =>
   tmdb(`/tv/${tmdbId}/season/${seasonNum}`)
-    .then(d => d.episodes || [])
-    .catch(err => { 
-      console.error("[api] season:", err); 
-      throw err; 
+    .then(data => data.episodes || [])
+    .catch(err => {
+      console.error("[api] season:", err);
+      throw err;
     });
 
 /* ---------- Recommendations ---------- */
-api.recommendations = (type, tmdbId) =>
-  tmdb(`/${type === "series" ? "tv" : "movie"}/${tmdbId}/recommendations`)
-    .then(d => normList(d.results).slice(0, 16))
-    .catch(err => { 
-      console.error("[api] recommendations:", err); 
-      return []; 
+api.recommendations = (type, tmdbId) => {
+  const path = `/${type === "series" ? "tv" : "movie"}/${tmdbId}/recommendations`;
+  return tmdb(path)
+    .then(data => normalizeList(data.results).slice(0, 16))
+    .catch(err => {
+      console.error("[api] recommendations:", err);
+      return [];
     });
+};
