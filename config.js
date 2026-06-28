@@ -1,8 +1,8 @@
 /* ============================================================
-   config.js — TMDB config + STREAM SOURCE RESOLVER (v8)
+   config.js — TMDB config + source resolver
    ============================================================ */
 
-const TMDB = {
+export const TMDB = {
   KEY: 'c08b4db209448aa1ada119d2ba2f4ede',
   BASE: 'https://api.themoviedb.org/3',
   IMG: 'https://image.tmdb.org/t/p/w500',
@@ -10,12 +10,8 @@ const TMDB = {
   IMG_ORIG: 'https://image.tmdb.org/t/p/original'
 };
 
-/* ------------------------------------------------------------
-   SOURCE_REGISTRY — manual overrides for specific titles/episodes
-   Key formats: "tv:{tmdbId}:S{season}E{episode}" | "tv:{tmdbId}" | "movie:{tmdbId}"
-   ------------------------------------------------------------ */
+/* ---------- Source registry ---------- */
 const SOURCE_REGISTRY = {
-  // Baddies USA: Chapter 2 — TMDB 309280, Season 1
   'tv:309280:S1E1': [
     { label: 'Vidara', type: 'embed', url: 'https://vidara.to/e/SiJHNfO2FSWYf' },
     { label: 'VTube', type: 'embed', url: 'https://vtbe.to/embed-lvea0dexzqzh.html' },
@@ -46,9 +42,7 @@ const SOURCE_REGISTRY = {
   ]
 };
 
-/* ------------------------------------------------------------
-   DEMO_POOL — public CORS-friendly test assets
-   ------------------------------------------------------------ */
+/* ---------- Demo pool ---------- */
 const DEMO_POOL = [
   {
     name: 'Big Buck Bunny',
@@ -59,33 +53,23 @@ const DEMO_POOL = [
   },
   {
     name: 'Elephants Dream',
-    variants: [
-      { type: 'mp4', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' }
-    ]
+    variants: [{ type: 'mp4', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' }]
   },
   {
     name: 'For Bigger Blazes',
-    variants: [
-      { type: 'mp4', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' }
-    ]
+    variants: [{ type: 'mp4', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4' }]
   },
   {
     name: 'For Bigger Escapes',
-    variants: [
-      { type: 'mp4', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' }
-    ]
+    variants: [{ type: 'mp4', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4' }]
   },
   {
     name: 'For Bigger Joyrides',
-    variants: [
-      { type: 'mp4', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4' }
-    ]
+    variants: [{ type: 'mp4', url: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4' }]
   },
   {
     name: 'Apple BipBop',
-    variants: [
-      { type: 'hls', url: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8' }
-    ]
+    variants: [{ type: 'hls', url: 'https://devstreaming-cdn.apple.com/videos/streaming/examples/img_bipbop_adv_example_ts/master.m3u8' }]
   }
 ];
 
@@ -94,61 +78,21 @@ const UNIVERSAL_FALLBACK = [
   { label: 'Fallback · Mux Test HLS', type: 'hls', url: 'https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8' }
 ];
 
-/* ------------------------------------------------------------
-   EMBED_SERVERS — generic embed providers for any TMDB title
-   ------------------------------------------------------------ */
+/* ---------- Embed servers ---------- */
 const EMBED_SERVERS = [
-  {
-    name: 'VidSrc',
-    movie: id => `https://vidsrc.to/embed/movie/${id}`,
-    tv: (id, s, e) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}`
-  },
-  {
-    name: 'VidSrc.xyz',
-    movie: id => `https://vidsrc.xyz/embed/movie/${id}`,
-    tv: (id, s, e) => `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}`
-  },
-  {
-    name: 'VidSrc.cc',
-    movie: id => `https://vidsrc.cc/v2/embed/movie/${id}`,
-    tv: (id, s, e) => `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}`
-  },
-  {
-    name: 'Embed.su',
-    movie: id => `https://embed.su/embed/movie/${id}`,
-    tv: (id, s, e) => `https://embed.su/embed/tv/${id}/${s}/${e}`
-  },
-  {
-    name: 'AutoEmbed',
-    movie: id => `https://player.autoembed.cc/embed/movie/${id}`,
-    tv: (id, s, e) => `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}`
-  },
-  {
-    name: 'VidLink',
-    movie: id => `https://vidlink.pro/movie/${id}`,
-    tv: (id, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}`
-  },
-  {
-    name: '2Embed',
-    movie: id => `https://www.2embed.cc/embed/${id}`,
-    tv: (id, s, e) => `https://www.2embed.cc/embedtv/${id}?s=${s}&e=${e}`
-  },
-  {
-    name: 'MoviesAPI',
-    movie: id => `https://moviesapi.club/movie/${id}`,
-    tv: (id, s, e) => `https://moviesapi.club/tv/${id}-${s}-${e}`
-  },
-  {
-    name: 'MultiEmbed',
-    movie: id => `https://multiembed.mov/?video_id=${id}&tmdb=1`,
-    tv: (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}`
-  }
+  { name: 'VidSrc', movie: id => `https://vidsrc.to/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
+  { name: 'VidSrc.xyz', movie: id => `https://vidsrc.xyz/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}` },
+  { name: 'VidSrc.cc', movie: id => `https://vidsrc.cc/v2/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.cc/v2/embed/tv/${id}/${s}/${e}` },
+  { name: 'Embed.su', movie: id => `https://embed.su/embed/movie/${id}`, tv: (id, s, e) => `https://embed.su/embed/tv/${id}/${s}/${e}` },
+  { name: 'AutoEmbed', movie: id => `https://player.autoembed.cc/embed/movie/${id}`, tv: (id, s, e) => `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}` },
+  { name: 'VidLink', movie: id => `https://vidlink.pro/movie/${id}`, tv: (id, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}` },
+  { name: '2Embed', movie: id => `https://www.2embed.cc/embed/${id}`, tv: (id, s, e) => `https://www.2embed.cc/embedtv/${id}?s=${s}&e=${e}` },
+  { name: 'MoviesAPI', movie: id => `https://moviesapi.club/movie/${id}`, tv: (id, s, e) => `https://moviesapi.club/tv/${id}-${s}-${e}` },
+  { name: 'MultiEmbed', movie: id => `https://multiembed.mov/?video_id=${id}&tmdb=1`, tv: (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}` }
 ];
 
-/* ------------------------------------------------------------
-   resolveSources(item, season, episode) -> Array<source>
-   ------------------------------------------------------------ */
-function resolveSources(item, season, episode) {
+/* ---------- Resolver ---------- */
+export function resolveSources(item, season, episode) {
   const isTV = item.type === 'series' || item.type === 'tv';
   const id = item.tmdbId;
   const s = season ? +season : 1;
@@ -156,21 +100,17 @@ function resolveSources(item, season, episode) {
 
   const sources = [];
 
-  // 1) Episode-specific registry
+  // Episode-specific
   if (isTV) {
     const epKey = `tv:${id}:S${s}E${e}`;
-    if (SOURCE_REGISTRY[epKey]) {
-      sources.push(...SOURCE_REGISTRY[epKey]);
-    }
+    if (SOURCE_REGISTRY[epKey]) sources.push(...SOURCE_REGISTRY[epKey]);
   }
 
-  // 2) Show/movie-level registry
+  // Show/movie-level
   const key = isTV ? `tv:${id}` : `movie:${id}`;
-  if (SOURCE_REGISTRY[key]) {
-    sources.push(...SOURCE_REGISTRY[key]);
-  }
+  if (SOURCE_REGISTRY[key]) sources.push(...SOURCE_REGISTRY[key]);
 
-  // 3) Generic embed servers
+  // Generic embeds
   for (const server of EMBED_SERVERS) {
     sources.push({
       label: server.name,
@@ -179,10 +119,8 @@ function resolveSources(item, season, episode) {
     });
   }
 
-  // 4) Deterministic demo selection (stable across sessions)
-  const poolIndex = Math.abs(parseInt(id, 10) || 0) % DEMO_POOL.length;
-  const demo = DEMO_POOL[poolIndex];
-  
+  // Demo
+  const demo = DEMO_POOL[Math.abs(parseInt(id, 10) || 0) % DEMO_POOL.length];
   for (const variant of demo.variants) {
     sources.push({
       label: `Demo · ${demo.name}${variant.type === 'hls' ? ' (HLS)' : ''}`,
@@ -191,15 +129,14 @@ function resolveSources(item, season, episode) {
     });
   }
 
-  // 5) Universal fallback
+  // Fallback
   sources.push(...UNIVERSAL_FALLBACK);
 
-  // Deduplicate by URL (first occurrence wins)
+  // Deduplicate
   const seen = new Set();
-  return sources.filter(source => {
-    if (!source.url) return false;
-    if (seen.has(source.url)) return false;
-    seen.add(source.url);
+  return sources.filter(src => {
+    if (!src.url || seen.has(src.url)) return false;
+    seen.add(src.url);
     return true;
   });
 }
