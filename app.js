@@ -220,32 +220,53 @@ const renderHome = async () => {
   $("#infoBlocks").classList.add("show");
   $("#view").innerHTML = '<div class="boot">Loading…</div>';
 
-  const settled = await Promise.allSettled([
-    api.trendingAll(), api.nowPlaying(), api.topMovies(), api.popularTV(), api.topTV()
-  ]);
-  const [trend, nowp, topm, popt, topt] = settled.map(r => r.status === "fulfilled" ? r.value : []);
-  [trend, nowp, topm, popt, topt].forEach(indexItems);
+  try {
+    console.log("[renderHome] Fetching data...");
+    const [trend, nowp, topm, popt, topt] = await Promise.all([
+      api.trendingAll(),
+      api.nowPlaying(),
+      api.topMovies(),
+      api.popularTV(),
+      api.topTV()
+    ]);
 
-  await initHero(trend);
+    console.log("[renderHome] Data fetched:", {
+      trend: trend?.length || 0,
+      nowp: nowp?.length || 0,
+      topm: topm?.length || 0,
+      popt: popt?.length || 0,
+      topt: topt?.length || 0
+    });
 
-  const hist = getHistory();
-  const mylist = getList();
-  [...hist, ...mylist].forEach(hh => INDEX[hh.id] = hh);
+    [trend, nowp, topm, popt, topt].forEach(indexItems);
+    await initHero(trend);
 
-  let html = "";
-  if (hist.length) html += continueRowHTML(hist);
-  if (mylist.length) html += myListRowHTML(mylist);
-  html += rowHTML("Trending Now", trend, 'movie');
-  html += rowHTML("Now Playing in Theaters", nowp, 'movie');
-  html += rowHTML("Top Rated Movies", topm, 'movie');
-  html += rowHTML("Popular TV Shows", popt, 'series');
-  html += rowHTML("Top Rated TV Shows", topt, 'series');
+    const hist = getHistory();
+    const mylist = getList();
+    [...hist, ...mylist].forEach(hh => INDEX[hh.id] = hh);
 
-  try { html += await buildTrending(); } catch (e) { console.error("[renderHome] buildTrending failed", e); }
+    let html = "";
+    if (hist.length) html += continueRowHTML(hist);
+    if (mylist.length) html += myListRowHTML(mylist);
+    html += rowHTML("Trending Now", trend, 'movie');
+    html += rowHTML("Now Playing in Theaters", nowp, 'movie');
+    html += rowHTML("Top Rated Movies", topm, 'movie');
+    html += rowHTML("Popular TV Shows", popt, 'series');
+    html += rowHTML("Top Rated TV Shows", topt, 'series');
 
-  $("#view").innerHTML = html;
-  bindTrending();
-  restartHeroTimer();
+    try { 
+      html += await buildTrending(); 
+    } catch (e) { 
+      console.error("[renderHome] buildTrending failed", e); 
+    }
+
+    $("#view").innerHTML = html;
+    bindTrending();
+    restartHeroTimer();
+  } catch (err) {
+    console.error("[renderHome] failed:", err);
+    throw err;
+  }
 };
 
 /* ---------- GRID ---------- */
@@ -807,9 +828,27 @@ window.addEventListener("scroll", () => $("#header").classList.toggle("scrolled"
   $("#year").textContent = new Date().getFullYear();
   bindPlayer();
   try {
+    console.log("[init] Loading genres...");
     await loadGenres();
+    console.log("[init] Genres loaded:", ALL_GENRES.length);
+    
+    console.log("[init] Rendering home...");
     await renderHome();
+    console.log("[init] Home rendered successfully");
   } catch (e) {
-    $("#view").innerHTML = `<div class="empty">Failed to load TMDB data: ${h(e.message)}. Check the API key / network.</div>`;
+    console.error("[init] Fatal error:", e);
+    $("#view").innerHTML = `
+      <div class="empty" style="padding:80px 28px;max-width:800px;margin:0 auto;text-align:left;">
+        <h2 style="color:var(--accent);margin-bottom:20px;">⚠️ Failed to load</h2>
+        <p style="color:var(--text);margin-bottom:10px;"><strong>Error:</strong> ${h(e.message || 'Unknown error')}</p>
+        <p style="color:var(--muted);font-size:14px;margin-top:20px;border-top:1px solid var(--line);padding-top:20px;">
+          Check console for details. Make sure:<br>
+          • TMDB API key is valid in config.js<br>
+          • Internet connection is working<br>
+          • CORS isn't blocking requests
+        </p>
+        <button onclick="location.reload()" style="margin-top:20px;background:var(--accent);color:#fff;border:none;padding:12px 30px;border-radius:8px;cursor:pointer;font-weight:700;font-family:inherit;">Retry</button>
+      </div>
+    `;
   }
 })();
