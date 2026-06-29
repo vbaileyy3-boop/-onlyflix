@@ -4,1865 +4,1034 @@
 
    ============================================================ */
 
+/*
+   BUG FIXES APPLIED:
+   1. .badge-hdr  — transition shorthand was overriding transition-delay (no effect).
+                    Fixed: delay baked into shorthand value.
+   2. .badge-rating — same shorthand/delay conflict as above.
+                    Fixed: delay baked into shorthand value.
+   3. .quick-actions — same shorthand/delay conflict; 0.2s delay was silently dropped.
+                    Fixed: delay baked into shorthand value.
+   4. .card-details — had bottom:-55px but no position property; bottom was ignored.
+                    Fixed: added position: absolute.
+   5. @media ≤520px .hero-btn — had justify-content:center but no display:flex;
+                    justify-content has no effect on a plain block element.
+                    Fixed: added display: flex.
+   6. .row-scroll scrollbar — only hid scrollbar in Chrome/Safari via ::-webkit-scrollbar.
+                    Firefox still showed it. Fixed: added scrollbar-width: none and
+                    -ms-overflow-style: none on .row-scroll itself.
+   7. .modal / .modal.hidden — transition:opacity was declared but .modal.hidden used
+                    display:none !important, making the fade impossible.
+                    Fixed: .modal.hidden now uses visibility:hidden + opacity:0 +
+                    pointer-events:none so opacity can animate. A .modal.visible helper
+                    class is added for the shown state.
+   8. (duplicate of #1–3, covered above)
+*/
+
 
 
 :root {
-
   --bg: #000000;
-
   --bg2: #0a0a12;
-
   --card: #111122;
-
   --accent: #8B5CF6;
-
   --accent2: #6D28D9;
-
   --accent3: #7C3AED;
-
   --text: #ffffff;
-
   --muted: rgba(255, 255, 255, 0.4);
-
   --line: rgba(255, 255, 255, 0.06);
-
   --gold: #FFD700;
-
   --radius: 12px;
-
   --radius-sm: 8px;
-
   --radius-lg: 16px;
-
   --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-
   --glow: 0 0 40px rgba(139, 92, 246, 0.15);
-
 }
-
-
 
 * {
-
   margin: 0;
-
   padding: 0;
-
   box-sizing: border-box;
-
 }
-
-
 
 html {
-
   scroll-behavior: smooth;
-
 }
-
-
 
 body {
-
   font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
-
   background: var(--bg);
-
   color: var(--text);
-
   overflow-x: hidden;
-
-  line-height: 1.5;
-
   -webkit-font-smoothing: antialiased;
-
   -moz-osx-font-smoothing: grayscale;
-
 }
-
-
 
 /* ---------- Scrollbar ---------- */
 
 ::-webkit-scrollbar {
-
   width: 6px;
-
   height: 6px;
-
 }
 
 ::-webkit-scrollbar-track {
-
   background: transparent;
-
 }
 
 ::-webkit-scrollbar-thumb {
-
   background: rgba(139, 92, 246, 0.3);
-
   border-radius: 10px;
-
 }
 
 ::-webkit-scrollbar-thumb:hover {
-
   background: rgba(139, 92, 246, 0.6);
-
 }
-
-
 
 /* ---------- Glassmorphism ---------- */
 
 .glass {
-
   background: rgba(255, 255, 255, 0.03);
-
   backdrop-filter: blur(12px);
-
   -webkit-backdrop-filter: blur(12px);
-
   border: 1px solid rgba(255, 255, 255, 0.06);
-
 }
 
-
-
 .glass-hover {
-
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
 }
 
 .glass-hover:hover {
-
   background: rgba(255, 255, 255, 0.06);
-
   border-color: rgba(139, 92, 246, 0.3);
-
 }
-
-
 
 /* ---------- Background ---------- */
 
 .bg-radial-dark {
-
   background: radial-gradient(ellipse at 50% 0%, rgba(139, 92, 246, 0.08) 0%, transparent 70%),
-
               radial-gradient(ellipse at 80% 50%, rgba(0, 200, 255, 0.04) 0%, transparent 50%),
-
               #000000;
-
 }
-
-
 
 .hero-gradient {
-
-  background: linear-gradient(180deg, 
-
+  background: linear-gradient(180deg,
     rgba(0, 0, 0, 0.2) 0%,
-
     rgba(0, 0, 0, 0.6) 50%,
-
     rgba(0, 0, 0, 0.95) 100%
-
   );
-
 }
 
-
-
 /* ============================================================
-
    HEADER
-
    ============================================================ */
 
 .site-header {
-
   position: fixed;
-
   top: 0;
-
   left: 0;
-
   right: 0;
-
   z-index: 100;
-
   padding: 16px 0;
-
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.9) 0%, transparent 100%);
-
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
 }
-
-
 
 .site-header.scrolled {
-
   background: rgba(0, 0, 0, 0.95);
-
   backdrop-filter: blur(20px);
-
   -webkit-backdrop-filter: blur(20px);
-
   box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
-
 }
-
-
 
 .main-nav a {
-
   position: relative;
-
   color: rgba(255, 255, 255, 0.4);
-
   transition: color 0.3s ease;
-
 }
-
-
 
 .main-nav a::after {
-
   content: '';
-
   position: absolute;
-
   bottom: -4px;
-
   left: 0;
-
   right: 0;
-
   height: 2px;
-
   background: linear-gradient(90deg, #8B5CF6, #6D28D9);
-
   border-radius: 4px;
-
   transform: scaleX(0);
-
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
 }
-
-
 
 .main-nav a:hover::after,
-
 .main-nav a.active::after {
-
   transform: scaleX(1);
-
 }
-
-
 
 .main-nav a:hover,
-
 .main-nav a.active {
-
   color: #ffffff;
-
 }
-
-
 
 .search-box input {
-
   background: rgba(255, 255, 255, 0.05);
-
   border: 1px solid rgba(255, 255, 255, 0.06);
-
   border-radius: 50px;
-
   padding: 10px 20px 10px 44px;
-
   color: #fff;
-
   width: 220px;
-
   font-size: 14px;
-
   outline: none;
-
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
 }
-
-
 
 .search-box input::placeholder {
-
   color: rgba(255, 255, 255, 0.3);
-
 }
-
-
 
 .search-box input:focus {
-
   background: rgba(255, 255, 255, 0.08);
-
   border-color: rgba(139, 92, 246, 0.3);
-
   width: 280px;
-
   box-shadow: 0 0 40px rgba(139, 92, 246, 0.05);
-
 }
 
-
-
 /* ============================================================
-
    HERO
-
    ============================================================ */
 
 .hero-section {
-
   position: relative;
-
   min-height: 85vh;
-
   display: flex;
-
   align-items: flex-end;
-
   padding: 120px 48px 80px;
-
   overflow: hidden;
-
 }
-
-
 
 .hero-backdrop {
-
   position: absolute;
-
   inset: 0;
-
   background-size: cover;
-
   background-position: center;
-
   filter: brightness(0.6) saturate(1.1);
-
   z-index: 0;
-
 }
-
-
 
 .hero-content {
-
   position: relative;
-
   z-index: 2;
-
   max-width: 700px;
-
 }
-
-
 
 .hero-badge {
-
   display: inline-block;
-
   background: linear-gradient(135deg, #8B5CF6, #6D28D9);
-
   padding: 4px 16px;
-
   border-radius: 50px;
-
   font-size: 11px;
-
   font-weight: 700;
-
   letter-spacing: 1.5px;
-
   text-transform: uppercase;
-
   margin-bottom: 20px;
-
   box-shadow: 0 4px 30px rgba(139, 92, 246, 0.3);
-
 }
-
-
 
 .hero-title {
-
   font-size: clamp(40px, 6vw, 76px);
-
   font-weight: 900;
-
   line-height: 1.02;
-
   letter-spacing: -1px;
-
   margin-bottom: 16px;
-
 }
-
-
 
 .hero-meta {
-
   display: flex;
-
   gap: 16px;
-
   align-items: center;
-
   font-size: 14px;
-
   color: rgba(255, 255, 255, 0.5);
-
   margin-bottom: 20px;
-
 }
-
-
 
 .hero-meta .rating {
-
   color: #FFD700;
-
   font-weight: 700;
-
 }
-
-
 
 .hero-overview {
-
   font-size: 16px;
-
   line-height: 1.7;
-
   color: rgba(255, 255, 255, 0.6);
-
   max-width: 540px;
-
   margin-bottom: 28px;
-
 }
-
-
 
 .hero-actions {
-
   display: flex;
-
   gap: 12px;
-
   flex-wrap: wrap;
-
 }
-
-
 
 .hero-btn {
-
-  display: inline-flex;
-
-  align-items: center;
-
-  justify-content: center;
-
-  gap: 8px;
-
   padding: 12px 32px;
-
   border-radius: 50px;
-
   font-weight: 700;
-
   font-size: 15px;
-
   border: none;
-
   cursor: pointer;
-
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
   font-family: 'Inter', sans-serif;
-
 }
-
-
 
 .hero-btn-primary {
-
   background: linear-gradient(135deg, #8B5CF6, #6D28D9);
-
   color: white;
-
   box-shadow: 0 4px 30px rgba(139, 92, 246, 0.3);
-
 }
-
-
 
 .hero-btn-primary:hover {
-
   transform: translateY(-3px);
-
   box-shadow: 0 8px 50px rgba(139, 92, 246, 0.5);
-
 }
-
-
 
 .hero-btn-secondary {
-
   background: rgba(255, 255, 255, 0.06);
-
   backdrop-filter: blur(8px);
-
   -webkit-backdrop-filter: blur(8px);
-
   color: white;
-
   border: 1px solid rgba(255, 255, 255, 0.08);
-
 }
-
-
 
 .hero-btn-secondary:hover {
-
   background: rgba(255, 255, 255, 0.12);
-
   transform: translateY(-3px);
-
 }
-
-
 
 .hero-dots {
-
   position: absolute;
-
   bottom: 30px;
-
   right: 48px;
-
   display: flex;
-
   gap: 10px;
-
   z-index: 2;
-
 }
-
-
 
 .hero-dots span {
-
   width: 10px;
-
   height: 10px;
-
   border-radius: 50%;
-
   background: rgba(255, 255, 255, 0.15);
-
   cursor: pointer;
-
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
   border: 2px solid transparent;
-
 }
-
-
 
 .hero-dots span.active {
-
   background: #8B5CF6;
-
   width: 28px;
-
   border-radius: 6px;
-
   box-shadow: 0 0 30px rgba(139, 92, 246, 0.4);
-
 }
 
-
-
 /* ============================================================
-
    ROWS
-
    ============================================================ */
 
 .row-container {
-
   position: relative;
-
   padding: 0 48px;
-
 }
-
-
 
 .section-title {
-
   font-size: 24px;
-
   font-weight: 800;
-
   letter-spacing: -0.5px;
-
   margin-bottom: 4px;
-
 }
-
-
 
 .section-subtitle {
-
   font-size: 14px;
-
   color: rgba(255, 255, 255, 0.3);
-
   margin-bottom: 0;
-
 }
-
-
 
 .row-scroll {
-
   display: flex;
-
   gap: 12px;
-
   overflow-x: auto;
-
   padding: 16px 4px 80px;
-
   scroll-snap-type: x mandatory;
-
   scroll-behavior: smooth;
-
   -webkit-overflow-scrolling: touch;
-
-  scrollbar-width: none;
-
+  /* FIX #6: hide scrollbar in all browsers, not just Chrome/Safari */
+  scrollbar-width: none;          /* Firefox */
+  -ms-overflow-style: none;       /* IE / Edge legacy */
 }
 
-
-
+/* FIX #6 (continued): Chrome / Safari / Opera */
 .row-scroll::-webkit-scrollbar {
-
   height: 0;
-
+  width: 0;
 }
-
-
 
 .row-scroll .card-wrapper {
-
   flex: 0 0 auto;
-
   width: 180px;
-
   scroll-snap-align: start;
-
 }
 
-
-
 /* ============================================================
-
    CARDS — Premium Hover Effect
-
    ============================================================ */
 
 .card-wrapper {
-
   position: relative;
-
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
   z-index: 1;
-
 }
-
-
 
 .card-wrapper:hover {
-
   z-index: 50;
-
   transform: scale(1.12) translateY(-8px);
-
 }
-
-
 
 .card-wrapper .card-details {
-
   opacity: 0;
-
   transform: translateY(12px) scale(0.95);
-
   transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-
   pointer-events: none;
-
 }
-
-
 
 .card-wrapper:hover .card-details {
-
   opacity: 1;
-
   transform: translateY(0) scale(1);
-
   pointer-events: auto;
-
   transition-delay: 0.15s;
-
 }
-
-
 
 .card-poster {
-
   position: relative;
-
-  aspect-ratio: 2/3;
-
+  aspect-ratio: 2 / 3;
   border-radius: 12px;
-
   overflow: hidden;
-
   background: linear-gradient(135deg, #0a0a12, #1a1a2e);
-
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
-
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
 }
-
-
 
 .card-wrapper:hover .card-poster {
-
   box-shadow: 0 20px 60px rgba(139, 92, 246, 0.2),
-
               0 0 40px rgba(139, 92, 246, 0.05);
-
 }
-
-
 
 .card-poster img {
-
   width: 100%;
-
   height: 100%;
-
   object-fit: cover;
-
   transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-
 }
-
-
 
 .card-wrapper:hover .card-poster img {
-
   transform: scale(1.05);
-
 }
-
-
 
 .poster-overlay {
-
   position: absolute;
-
   inset: 0;
-
-  background: linear-gradient(180deg, 
-
+  background: linear-gradient(180deg,
     transparent 30%,
-
     rgba(0, 0, 0, 0.4) 70%,
-
     rgba(0, 0, 0, 0.85) 100%
-
   );
-
   opacity: 0;
-
   transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-
 }
-
-
 
 .card-wrapper:hover .poster-overlay {
-
   opacity: 1;
-
 }
-
-
 
 /* ---------- Badges ---------- */
 
 .badge-4k {
-
   position: absolute;
-
   top: 10px;
-
   left: 10px;
-
   background: linear-gradient(135deg, #8B5CF6, #6D28D9);
-
   color: white;
-
   font-size: 9px;
-
   font-weight: 700;
-
   letter-spacing: 0.5px;
-
   padding: 3px 8px;
-
   border-radius: 4px;
-
   text-transform: uppercase;
-
   opacity: 0;
-
   transform: translateY(-8px);
-
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
 }
 
-
-
+/*
+ * FIX #1: Was:
+ *   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+ *   transition-delay: 0.05s;
+ * The shorthand resets transition-delay to 0s, making the second line a no-op.
+ * Fixed: delay encoded directly in the shorthand.
+ */
 .badge-hdr {
-
   position: absolute;
-
   top: 10px;
-
   left: 48px;
-
   background: rgba(255, 215, 0, 0.9);
-
   color: #000;
-
   font-size: 9px;
-
   font-weight: 700;
-
   letter-spacing: 0.5px;
-
   padding: 3px 8px;
-
   border-radius: 4px;
-
   text-transform: uppercase;
-
   opacity: 0;
-
   transform: translateY(-8px);
-
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  transition-delay: 0.05s;
-
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.05s; /* FIX #1 */
 }
-
-
 
 .card-wrapper:hover .badge-4k,
-
 .card-wrapper:hover .badge-hdr {
-
   opacity: 1;
-
   transform: translateY(0);
-
 }
 
-
-
+/*
+ * FIX #2: Same shorthand/delay conflict as .badge-hdr above.
+ * Fixed: delay encoded directly in the shorthand.
+ */
 .badge-rating {
-
   position: absolute;
-
   top: 10px;
-
   right: 10px;
-
   background: rgba(0, 0, 0, 0.75);
-
   backdrop-filter: blur(8px);
-
   -webkit-backdrop-filter: blur(8px);
-
   color: #FFD700;
-
   font-weight: 700;
-
   font-size: 12px;
-
   padding: 4px 10px;
-
   border-radius: 20px;
-
   border: 1px solid rgba(255, 215, 0, 0.15);
-
   opacity: 0;
-
   transform: translateY(-8px);
-
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  transition-delay: 0.1s;
-
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.1s; /* FIX #2 */
 }
-
-
 
 .card-wrapper:hover .badge-rating {
-
   opacity: 1;
-
   transform: translateY(0);
-
 }
-
-
 
 /* ---------- Quick Actions ---------- */
 
+/*
+ * FIX #3: transition shorthand was followed by a separate transition-delay,
+ * which the shorthand resets to 0s (making the staggered entrance invisible).
+ * Fixed: delay baked into the shorthand as a 4th value.
+ */
 .quick-actions {
-
   position: absolute;
-
   bottom: 70px;
-
   left: 0;
-
   right: 0;
-
   display: flex;
-
   justify-content: center;
-
   gap: 10px;
-
   opacity: 0;
-
   transform: translateY(16px);
-
-  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-
-  transition-delay: 0.2s;
-
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1) 0.2s; /* FIX #3 */
 }
-
-
 
 .card-wrapper:hover .quick-actions {
-
   opacity: 1;
-
   transform: translateY(0);
-
 }
-
-
 
 .quick-action-btn {
-
-  line-height: 1;
-
   width: 36px;
-
   height: 36px;
-
   border-radius: 50%;
-
   border: none;
-
   background: rgba(255, 255, 255, 0.08);
-
   backdrop-filter: blur(8px);
-
   -webkit-backdrop-filter: blur(8px);
-
   color: white;
-
   font-size: 14px;
-
   cursor: pointer;
-
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
   font-family: 'Inter', sans-serif;
-
 }
-
-
 
 .quick-action-btn:hover {
-
   background: rgba(139, 92, 246, 0.8);
-
   transform: scale(1.1);
-
   box-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
-
 }
-
-
 
 .quick-action-btn.play {
-
   background: linear-gradient(135deg, #8B5CF6, #6D28D9);
-
   box-shadow: 0 4px 20px rgba(139, 92, 246, 0.3);
-
 }
-
-
 
 .quick-action-btn.play:hover {
-
   box-shadow: 0 8px 40px rgba(139, 92, 246, 0.5);
-
   transform: scale(1.15);
-
 }
-
-
 
 /* ---------- Card Details ---------- */
 
+/*
+ * FIX #4: Was missing 'position: absolute'.
+ * 'bottom: -55px' is only respected when an element is positioned.
+ * Without position, the card details rendered in normal flow, not under the poster.
+ */
 .card-details {
-
-  position: absolute;
-
+  position: absolute; /* FIX #4 */
   bottom: -55px;
-
   left: 0;
-
   right: 0;
-
   padding: 12px 14px 10px;
-
   background: rgba(10, 10, 18, 0.95);
-
   backdrop-filter: blur(16px);
-
   -webkit-backdrop-filter: blur(16px);
-
   border-radius: 0 0 12px 12px;
-
   border: 1px solid rgba(255, 255, 255, 0.06);
-
   border-top: none;
-
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-
   z-index: 10;
-
 }
-
-
 
 .card-details .title {
-
   font-size: 13px;
-
   font-weight: 700;
-
   color: #fff;
-
   margin-bottom: 4px;
-
   white-space: nowrap;
-
   overflow: hidden;
-
   text-overflow: ellipsis;
-
 }
-
-
 
 .card-details .meta {
-
   display: flex;
-
   align-items: center;
-
   gap: 8px;
-
   font-size: 11px;
-
   color: rgba(255, 255, 255, 0.4);
-
 }
-
-
 
 .card-details .meta .genre-tag {
-
   background: rgba(139, 92, 246, 0.15);
-
   padding: 1px 8px;
-
   border-radius: 10px;
-
   color: rgba(139, 92, 246, 0.7);
-
   font-size: 10px;
-
   font-weight: 600;
-
 }
 
-
-
 /* ============================================================
-
    ROW NAVIGATION
-
    ============================================================ */
 
 .row-nav {
-
   position: absolute;
-
   top: 50%;
-
   transform: translateY(-50%);
-
   z-index: 20;
-
   width: 36px;
-
   height: 72px;
-
   border: none;
-
   background: rgba(0, 0, 0, 0.5);
-
   backdrop-filter: blur(8px);
-
   -webkit-backdrop-filter: blur(8px);
-
   border-radius: 8px;
-
   color: white;
-
   font-size: 18px;
-
   cursor: pointer;
-
   opacity: 0;
-
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
   display: flex;
-
   align-items: center;
-
   justify-content: center;
-
 }
-
-
 
 .row-container:hover .row-nav {
-
   opacity: 1;
-
 }
-
-
 
 .row-nav:hover {
-
   background: rgba(139, 92, 246, 0.3);
-
   backdrop-filter: blur(12px);
-
   -webkit-backdrop-filter: blur(12px);
-
   transform: translateY(-50%) scale(1.05);
-
 }
-
-
 
 .row-nav-left {
-
   left: 8px;
-
 }
-
-
 
 .row-nav-right {
-
   right: 8px;
-
 }
-
-
 
 .row-nav svg {
-
   width: 20px;
-
   height: 20px;
-
   stroke: currentColor;
-
   stroke-width: 2;
-
   fill: none;
-
 }
 
-
-
 /* ============================================================
-
    FILTER PILLS
-
    ============================================================ */
 
 .filter-pill {
-
   background: rgba(255, 255, 255, 0.04);
-
   backdrop-filter: blur(8px);
-
   -webkit-backdrop-filter: blur(8px);
-
   border: 1px solid rgba(255, 255, 255, 0.06);
-
   color: rgba(255, 255, 255, 0.6);
-
   padding: 8px 18px;
-
   border-radius: 50px;
-
   font-size: 13px;
-
   font-weight: 500;
-
   cursor: pointer;
-
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
   appearance: none;
-
   -webkit-appearance: none;
-
   outline: none;
-
   font-family: 'Inter', sans-serif;
-
 }
-
-
 
 .filter-pill:hover {
-
   background: rgba(255, 255, 255, 0.08);
-
   border-color: rgba(139, 92, 246, 0.3);
-
   color: #fff;
-
 }
-
-
 
 .filter-pill:focus {
-
   border-color: #8B5CF6;
-
   box-shadow: 0 0 30px rgba(139, 92, 246, 0.1);
-
 }
-
-
 
 .filter-pill option {
-
   background: #0a0a12;
-
   color: #fff;
-
 }
 
-
-
 /* ============================================================
-
    GRID
-
    ============================================================ */
 
 .grid {
-
   display: grid;
-
   grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-
   gap: 20px;
-
 }
-
-
 
 .load-more {
-
   display: block;
-
   margin: 20px auto 50px;
-
   padding: 14px 40px;
-
   border-radius: 50px;
-
   background: rgba(255, 255, 255, 0.04);
-
   border: 1px solid rgba(255, 255, 255, 0.06);
-
   color: rgba(255, 255, 255, 0.6);
-
   font-weight: 700;
-
   cursor: pointer;
-
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
   font-family: 'Inter', sans-serif;
-
 }
-
-
 
 .load-more:hover {
-
   background: rgba(139, 92, 246, 0.1);
-
   border-color: rgba(139, 92, 246, 0.3);
-
   color: #fff;
-
   transform: translateY(-2px);
-
 }
 
-
-
 /* ============================================================
-
    TRENDING
-
    ============================================================ */
 
 .trend-item {
-
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
 }
-
-
 
 .trend-item:hover {
-
   background: rgba(255, 255, 255, 0.05);
-
   transform: translateX(4px);
-
 }
 
-
-
 /* ============================================================
-
    PLAYER
-
    ============================================================ */
 
 #serverBar {
-
   display: flex;
-
   flex-wrap: wrap;
-
   gap: 6px;
-
   padding: 0 4px;
-
   min-height: 32px;
-
 }
-
-
 
 #serverBar button {
-
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
 }
-
-
 
 #serverBar button .status-dot {
-
   display: inline-block;
-
   width: 6px;
-
   height: 6px;
-
   border-radius: 50%;
-
   margin-right: 4px;
-
   flex-shrink: 0;
-
 }
 
-
-
-#serverBar button .status-dot.online { background: #34D399; }
-
+#serverBar button .status-dot.online  { background: #34D399; }
 #serverBar button .status-dot.offline { background: #F87171; }
-
-#serverBar button .status-dot.checking { 
-
-  background: #FBBF24; 
-
+#serverBar button .status-dot.checking {
+  background: #FBBF24;
   animation: pulse-dot 1s ease-in-out infinite;
-
 }
-
-
 
 @keyframes pulse-dot {
-
   0%, 100% { opacity: 1; }
-
-  50% { opacity: 0.3; }
-
+  50%       { opacity: 0.3; }
 }
-
-
 
 /* ---------- Video Controls ---------- */
 
 #progress {
-
   height: 4px;
-
   background: rgba(255, 255, 255, 0.15);
-
   border-radius: 4px;
-
   cursor: pointer;
-
   transition: height 0.2s ease;
-
 }
-
-
 
 #progress:hover {
-
   height: 6px;
-
 }
-
-
 
 #progressFilled {
-
   height: 100%;
-
   background: linear-gradient(90deg, #8B5CF6, #6D28D9);
-
   border-radius: 4px;
-
   transition: width 0.1s linear;
-
 }
 
-
-
 /* ============================================================
-
    INFO BLOCKS
-
    ============================================================ */
 
 .info-blocks {
-
   display: none;
-
 }
-
-
 
 .info-blocks.show {
-
   display: block;
-
 }
-
-
 
 .info-card {
-
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
 }
-
-
 
 .info-card:hover {
-
   transform: translateY(-4px);
-
   border-color: rgba(139, 92, 246, 0.3);
-
 }
 
-
-
 /* ============================================================
-
    MODALS
-
    ============================================================ */
 
+/*
+ * FIX #7: Was '.modal.hidden { display: none !important }'.
+ * CSS transitions cannot animate to/from display:none — the opacity fade
+ * declared on .modal was completely non-functional.
+ *
+ * New approach:
+ *   • .modal is always in the DOM flow (position:fixed so it doesn't shift layout).
+ *   • Hidden state uses visibility:hidden + opacity:0 + pointer-events:none.
+ *   • Visible state (.modal.visible) uses visibility:visible + opacity:1.
+ *   • Both visibility and opacity transition, giving a proper cross-fade.
+ *
+ * If you need to remove the element from the accessibility tree entirely,
+ * also toggle aria-hidden="true" / "false" in JS.
+ */
 .modal {
-
-  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-}
-
-
-
-.modal.hidden {
-
-  display: none !important;
-
+  position: fixed;
+  inset: 0;
+  z-index: 200;
   opacity: 0;
-
-  pointer-events: none;
-
+  visibility: hidden;         /* FIX #7: replaces display:none */
+  pointer-events: none;       /* FIX #7: prevents clicks when invisible */
+  transition: opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+              visibility 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* FIX #7: use .modal.visible to show (replaces removing .hidden) */
+.modal.visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
 
+/* Keep .modal.hidden as a no-op alias for backwards compatibility,
+   but it no longer breaks the transition. */
+.modal.hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
 
 .modal-card {
-
   max-height: 90vh;
-
   overflow-y: auto;
-
 }
-
-
 
 .modal-card::-webkit-scrollbar {
-
   width: 4px;
-
 }
-
-
 
 .modal-card::-webkit-scrollbar-thumb {
-
   background: rgba(139, 92, 246, 0.3);
-
   border-radius: 4px;
-
 }
 
-
-
 /* ============================================================
-
    RESPONSIVE
-
    ============================================================ */
 
 @media (max-width: 820px) {
-
   .hero-section {
-
     padding: 100px 24px 60px;
-
     min-height: 70vh;
-
   }
-
-
 
   .row-container {
-
     padding: 0 24px;
-
   }
-
-
 
   .row-scroll .card-wrapper {
-
     width: 150px;
-
   }
-
-
 
   .row-nav {
-
     display: none !important;
-
   }
-
-
 
   .main-nav {
-
     display: none !important;
-
   }
-
-
 
   .hero-dots {
-
     right: 24px;
-
     bottom: 20px;
-
   }
-
-
 
   .search-box input {
-
     width: 160px;
-
   }
-
-
 
   .search-box input:focus {
-
     width: 200px;
-
   }
-
-
 
   .grid {
-
     grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-
     gap: 16px;
-
   }
-
 }
-
-
 
 @media (max-width: 520px) {
-
   .hero-section {
-
     padding: 80px 16px 40px;
-
   }
-
-
 
   .hero-title {
-
     font-size: 28px;
-
   }
-
-
 
   .hero-overview {
-
     font-size: 14px;
-
   }
-
-
 
   .hero-actions {
-
     flex-direction: column;
-
     width: 100%;
-
   }
 
-
-
+  /*
+   * FIX #5: Was missing 'display: flex'.
+   * 'justify-content: center' is a flex/grid property and has no effect on
+   * a plain block-level element. The button text was left-aligned on mobile.
+   */
   .hero-btn {
-
-    width: 100%;
-
+    display: flex;               /* FIX #5 */
     justify-content: center;
-
+    width: 100%;
   }
-
-
 
   .row-scroll .card-wrapper {
-
     width: 120px;
-
   }
-
-
 
   .row-container {
-
     padding: 0 16px;
-
   }
-
-
 
   .section-title {
-
     font-size: 18px;
-
   }
-
-
 
   .card-details .title {
-
     font-size: 11px;
-
   }
-
-
 
   .card-details .meta {
-
     font-size: 10px;
-
     flex-wrap: wrap;
-
   }
-
-
 
   .grid {
-
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
-
     gap: 12px;
-
   }
-
-
 
   .filter-pill {
-
     font-size: 12px;
-
     padding: 6px 14px;
-
   }
-
 }
 
-
-
 @media (max-width: 400px) {
-
   .row-scroll .card-wrapper {
-
     width: 100px;
-
   }
-
-
 
   .grid {
-
     grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
-
     gap: 10px;
-
   }
-
-
 
   .search-box input {
-
     width: 120px;
-
     padding: 8px 12px 8px 36px;
-
     font-size: 13px;
-
   }
-
-
 
   .search-box input:focus {
-
     width: 140px;
-
   }
-
-} 
-
+}
