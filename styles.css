@@ -74,6 +74,8 @@ body {
 
   overflow-x: hidden;
 
+  line-height: 1.5;
+
   -webkit-font-smoothing: antialiased;
 
   -moz-osx-font-smoothing: grayscale;
@@ -476,6 +478,14 @@ body {
 
 .hero-btn {
 
+  display: inline-flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  gap: 8px;
+
   padding: 12px 32px;
 
   border-radius: 50px;
@@ -653,6 +663,8 @@ body {
   scroll-behavior: smooth;
 
   -webkit-overflow-scrolling: touch;
+
+  scrollbar-width: none;
 
 }
 
@@ -991,6 +1003,8 @@ body {
 
 
 .quick-action-btn {
+
+  line-height: 1;
 
   width: 36px;
 
@@ -1577,6 +1591,10 @@ body {
 .modal.hidden {
 
   display: none !important;
+
+  opacity: 0;
+
+  pointer-events: none;
 
 }
 
