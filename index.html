@@ -13,9 +13,6 @@
 </head>
 <body class="bg-black">
 
-  <!-- ============================================================
-       HEADER
-       ============================================================ -->
   <header class="site-header" id="header">
     <div class="max-w-[1560px] mx-auto px-6 md:px-8 flex items-center justify-between">
       <a href="#" class="text-2xl font-black tracking-tight" data-route="home">
@@ -39,9 +36,6 @@
     </div>
   </header>
 
-  <!-- ============================================================
-       HERO
-       ============================================================ -->
   <section class="hero-section" id="hero">
     <div class="hero-backdrop" id="heroBg" style="background-image: url('https://image.tmdb.org/t/p/w1280/8c4a8kE7P3fG7x5y8z9w0q1r2s3t4u5v6.jpg');"></div>
     <div class="hero-gradient absolute inset-0 z-1"></div>
@@ -70,18 +64,11 @@
     </div>
   </section>
 
-  <!-- ============================================================
-       MAIN CONTENT
-       ============================================================ -->
   <main class="relative z-10 -mt-20 pb-20" id="main">
     <div id="view">
-      <!-- Content rendered by JavaScript -->
-    </div>
+      </div>
   </main>
 
-  <!-- ============================================================
-       INFO BLOCKS
-       ============================================================ -->
   <section class="max-w-6xl mx-auto px-6 md:px-8 py-16 info-blocks" id="infoBlocks">
     <h2 class="text-3xl font-black tracking-tight mb-3">Experience <span class="text-[#8B5CF6]">CINEMAX</span></h2>
     <p class="text-white/40 max-w-2xl mb-10">Premium streaming catalog with zero registration. Metadata powered by TMDB.</p>
@@ -110,9 +97,6 @@
     </div>
   </section>
 
-  <!-- ============================================================
-       FOOTER
-       ============================================================ -->
   <footer class="border-t border-white/5 mt-10">
     <div class="max-w-6xl mx-auto px-6 md:px-8 py-12 text-center">
       <a href="#" class="text-xl font-black tracking-tight" data-route="home">
@@ -126,17 +110,11 @@
     </div>
   </footer>
 
-  <!-- ============================================================
-       DETAIL MODAL
-       ============================================================ -->
   <div class="fixed inset-0 z-[200] hidden items-center justify-center p-6 modal" id="detailModal">
     <div class="absolute inset-0 bg-black/90 backdrop-blur-md" data-close></div>
     <div class="relative z-10 bg-[#0a0a12] rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-auto border border-white/5 modal-card" id="detailCard"></div>
   </div>
 
-  <!-- ============================================================
-       PLAYER MODAL
-       ============================================================ -->
   <div class="fixed inset-0 z-[200] hidden items-center justify-center p-6 modal" id="playerModal">
     <div class="absolute inset-0 bg-black/95" data-close-player></div>
     <div class="relative z-10 w-full max-w-5xl">
@@ -144,17 +122,14 @@
       
       <div class="text-white font-bold text-lg mb-3" id="playerTitle"></div>
       
-      <!-- Server Bar -->
       <div class="flex flex-wrap gap-2 mb-3 px-1" id="serverBar">
         <span class="text-white/30 text-[10px] uppercase tracking-wider w-full mb-1">Sources</span>
       </div>
       
-      <!-- Video Container -->
       <div class="bg-black rounded-2xl overflow-hidden aspect-video relative" id="videoWrap">
         <video id="videoEl" class="w-full h-full" preload="metadata" playsinline></video>
         <iframe id="embedEl" class="w-full h-full hidden" allowfullscreen allow="autoplay; encrypted-media"></iframe>
         
-        <!-- Video Controls -->
         <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent" id="videoControls">
           <div class="h-1 bg-white/20 rounded cursor-pointer mb-3" id="progress">
             <div class="h-full w-0 rounded" id="progressFilled"></div>
@@ -184,9 +159,6 @@
     </div>
   </div>
 
-  <!-- ============================================================
-       TRAILER MODAL
-       ============================================================ -->
   <div class="fixed inset-0 z-[300] hidden items-center justify-center p-6 bg-black/90 backdrop-blur-xl modal" id="trailerModal">
     <div class="relative w-full max-w-4xl">
       <button class="absolute -top-12 right-0 text-white/50 hover:text-white text-3xl transition-colors" data-close-trailer>×</button>
@@ -196,9 +168,6 @@
     </div>
   </div>
 
-  <!-- ============================================================
-       SCRIPTS
-       ============================================================ -->
   <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
   <script type="module" src="app.js"></script>
 </body>
