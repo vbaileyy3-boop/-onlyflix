@@ -7,12 +7,9 @@ import { TMDB } from './config.js';
 const genreMap = new Map();
 let allGenres = [];
 const cache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes in milliseconds
-const MAX_CACHE_ITEMS = 150;     // Boundary limit to protect runtime memory
+const CACHE_TTL = 5 * 60 * 1000;
+const MAX_CACHE_ITEMS = 150;
 
-/**
- * Low-level TMDB Fetch Client with exponential back-off and caching
- */
 async function tmdb(path, params = {}, retries = 2) {
   const url = new URL(TMDB.BASE + path);
   url.searchParams.set('api_key', TMDB.KEY);
@@ -30,18 +27,14 @@ async function tmdb(path, params = {}, retries = 2) {
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
       const res = await fetch(url);
-      
-      // Auto-recovery mechanism for standard HTTP 429 rate boundaries
       if (res.status === 429 && attempt < retries) {
         const ms = (+res.headers.get('retry-after') || 1) * 1000;
         await new Promise(r => setTimeout(r, ms));
         continue;
       }
-      
       if (!res.ok) throw new Error(`TMDB ${res.status} ${path}`);
       const data = await res.json();
       
-      // Prevent single-page application memory leaks via proactive eviction
       if (cache.size >= MAX_CACHE_ITEMS) {
         const now = Date.now();
         for (const [k, v] of cache.entries()) {
@@ -84,9 +77,6 @@ export function getGenres() {
   return allGenres;
 }
 
-/**
- * Transforms polymorphic raw TMDB data structures into standard interface tokens
- */
 function normalize(item) {
   if (!item?.id || item.media_type === 'person') return null;
 
@@ -138,7 +128,6 @@ const endpoints = {
   topTV: '/tv/top_rated'
 };
 
-// Optimally compile the API endpoints into fixed-memory mapping handlers
 export const api = Object.fromEntries(
   Object.entries(endpoints).map(([name, path]) => {
     const fetcher = createEndpoint(path);
@@ -154,7 +143,7 @@ api.discover = async (type, { genre, year, sort = 'popularity.desc', page = 1 } 
   const params = {
     sort_by: sort,
     page,
-    'vote_count.gte': 30 // Ensure high visual quality in discovery layout tracks
+    'vote_count.gte': 30
   };
 
   if (genre && genre !== 'all') params.with_genres = genre;
@@ -196,7 +185,7 @@ api.details = async (type, tmdbId) => {
     genre_ids: (data.genres || []).map(g => g.id)
   });
 
-  if (!base) throw new Error(`Normalization engine structural fault for asset ID: ${tmdbId}`);
+  if (!base) throw new Error(`normalize failed for ID ${tmdbId}`);
 
   base.genres = (data.genres || []).map(g => g.name);
   base.runtime = isTV ? null : data.runtime;
