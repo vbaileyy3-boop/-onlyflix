@@ -43,6 +43,19 @@ const state = {
   searchTimer: null
 };
 
+/* ---------- Modal helpers ---------- */
+function showModal(modal) {
+  if (!modal) return;
+  modal.classList.remove('hidden');
+  modal.classList.add('visible');
+}
+
+function hideModal(modal) {
+  if (!modal) return;
+  modal.classList.add('hidden');
+  modal.classList.remove('visible');
+}
+
 /* ---------- Helpers ---------- */
 function esc(str) {
   return String(str ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -672,8 +685,7 @@ async function openDetail(id) {
     card.innerHTML = `<div class="p-8 text-center"><div class="text-white/30">Loading…</div></div>`;
   }
   
-  const modal = $('#detailModal');
-  if (modal) modal.classList.remove('hidden');
+  showModal($('#detailModal'));
   document.body.style.overflow = 'hidden';
 
   let item;
@@ -778,8 +790,7 @@ async function openDetail(id) {
 }
 
 function closeDetail() {
-  const modal = $('#detailModal');
-  if (modal) modal.classList.add('hidden');
+  hideModal($('#detailModal'));
   document.body.style.overflow = '';
   if ($('#hero').style.display !== 'none') restartHeroTimer();
 }
@@ -790,7 +801,7 @@ function openTrailer(key) {
   if (overlay) {
     const iframe = $('#trailerIframe');
     if (iframe) iframe.src = `https://www.youtube.com/embed/${encodeURIComponent(key)}?autoplay=1&rel=0`;
-    overlay.classList.remove('hidden');
+    showModal(overlay);
     document.body.style.overflow = 'hidden';
   }
 }
@@ -800,7 +811,7 @@ function closeTrailer() {
   if (overlay) {
     const iframe = $('#trailerIframe');
     if (iframe) iframe.src = '';
-    overlay.classList.add('hidden');
+    hideModal(overlay);
     if (!$('#detailModal').classList.contains('hidden') && !$('#playerModal').classList.contains('hidden')) {
       document.body.style.overflow = '';
     }
@@ -990,8 +1001,7 @@ export async function openPlayer(id, season, episode) {
   clearInterval(state.heroTimer);
   document.body.style.overflow = 'hidden';
 
-  const modal = $('#playerModal');
-  if (modal) modal.classList.remove('hidden');
+  showModal($('#playerModal'));
 
   const titleEl = $('#playerTitle');
   if (titleEl) {
@@ -1024,8 +1034,7 @@ export async function openPlayer(id, season, episode) {
 }
 
 function closePlayer() {
-  const modal = $('#playerModal');
-  if (modal) modal.classList.add('hidden');
+  hideModal($('#playerModal'));
 
   const video = $('#videoEl');
   if (video) {
