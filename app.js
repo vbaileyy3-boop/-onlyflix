@@ -928,15 +928,15 @@ function loadSource(src) {
 
   if (src.type === 'embed') {
     if (video) { video.pause(); video.removeAttribute('src'); video.load(); video.style.display = 'none'; }
-    if (controls) controls.style.display = 'none';
+    if (controls) { controls.style.display = 'none'; controls.style.visibility = 'hidden'; controls.style.pointerEvents = 'none'; }
     if (embed) { embed.style.display = 'block'; embed.src = src.url; }
-    if (note) note.innerHTML = `Playing via <strong>${esc(src.label || 'embed')}</strong>. If it doesn't load, <a href="${src.url}" target="_blank" rel="noopener" class="text-[#8B5CF6] hover:underline">open in new tab ↗</a>`;
+    if (note) note.innerHTML = `Playing via <strong>${esc(src.label || 'embed')}</strong>. If the player above shows an error or won't load, try another source above, or <a href="${src.url}" target="_blank" rel="noopener" class="text-[#8B5CF6] hover:underline">open in new tab ↗</a>`;
     return;
   }
 
   if (embed) { embed.src = ''; embed.style.display = 'none'; }
   if (video) video.style.display = 'block';
-  if (controls) controls.style.display = 'flex';
+  if (controls) { controls.style.display = 'flex'; controls.style.visibility = 'visible'; controls.style.pointerEvents = 'auto'; }
   if (note) note.innerHTML = `Playing direct stream: <strong>${esc(src.label || 'Direct Source')}</strong>`;
 
   const savedProgress = state.progress[state.player?.id] || 0;
@@ -1058,25 +1058,105 @@ function initPlayerControls() {
   const video = $('#videoEl');
   if (!video) return;
 
+  const btnPlay = $('#btnPlay');
+  const btnBack = $('#btnBack');
+  const btnFwd = $('#btnFwd');
+  const btnMute = $('#btnMute');
+  const volSlider = $('#volSlider');
+  const speedSel = $('#speedSel');
+  const btnFull = $('#btnFull');
+  const progress = $('#progress');
+  const progressFilled = $('#progressFilled');
+  const timeLabel = $('#timeLabel');
+
+  const setPlayIcon = () => {
+    if (btnPlay) btnPlay.textContent = video.paused ? '▶' : '❚❚';
+  };
+
+  if (btnPlay) {
+    btnPlay.onclick = () => {
+      if (video.paused) video.play().catch(() => {});
+      else video.pause();
+    };
+  }
+
+  video.addEventListener('play', setPlayIcon);
+  video.addEventListener('pause', setPlayIcon);
+
+  if (btnBack) {
+    btnBack.onclick = () => {
+      video.currentTime = Math.max(0, video.currentTime - 10);
+    };
+  }
+
+  if (btnFwd) {
+    btnFwd.onclick = () => {
+      if (video.duration) video.currentTime = Math.min(video.duration, video.currentTime + 10);
+    };
+  }
+
+  if (btnMute) {
+    btnMute.onclick = () => {
+      video.muted = !video.muted;
+      btnMute.textContent = video.muted ? '🔇' : '🔊';
+      if (volSlider) volSlider.value = video.muted ? 0 : video.volume;
+    };
+  }
+
+  if (volSlider) {
+    volSlider.oninput = () => {
+      video.volume = +volSlider.value;
+      video.muted = +volSlider.value === 0;
+      if (btnMute) btnMute.textContent = video.muted ? '🔇' : '🔊';
+    };
+  }
+
+  if (speedSel) {
+    speedSel.onchange = () => {
+      video.playbackRate = +speedSel.value;
+    };
+  }
+
+  if (btnFull) {
+    btnFull.onclick = () => {
+      const wrap = $('#videoWrap');
+      if (!wrap) return;
+      if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+      else wrap.requestFullscreen?.().catch(() => {});
+    };
+  }
+
+  if (progress) {
+    progress.onclick = (e) => {
+      if (!video.duration) return;
+      const rect = progress.getBoundingClientRect();
+      const pct = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+      video.currentTime = pct * video.duration;
+    };
+  }
+
   video.ontimeupdate = () => {
     if (!state.player) return;
     const cur = video.currentTime;
     const dur = video.duration;
 
+    if (progressFilled && dur > 0) progressFilled.style.width = `${(cur / dur) * 100}%`;
+    if (timeLabel) timeLabel.textContent = `${formatTime(cur)} / ${formatTime(dur || 0)}`;
+
     if (cur > 5 && dur > 0) {
       saveProgress(state.player.id, cur);
-      const bar = $('#videoProgressBar');
-      if (bar) bar.style.width = `${(cur / dur) * 100}%`;
-      const clock = $('#videoTimeDisplay');
-      if (clock) clock.textContent = `${formatTime(cur)} / ${formatTime(dur)}`;
     }
   };
 
   video.onended = () => {
     if (!state.player) return;
     clearProgress(state.player.id);
+    setPlayIcon();
   };
+
+  setPlayIcon();
 }
+
 
 /* ---------- Global Event Listeners ---------- */
 function initGlobalListeners() {
