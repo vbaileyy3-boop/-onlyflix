@@ -62,7 +62,7 @@ function esc(str) {
 }
 
 function posterStyle(item) {
-  return item.poster ? `background-image:url('${item.poster}')` : 'background:linear-gradient(135deg,#0a0a12,#1a1a2e)';
+  return item.poster ? `background-image:url('${item.poster}')` : 'background:linear-gradient(160deg,#1a1712,#0c0c0a)';
 }
 
 function formatTime(t) {
@@ -162,7 +162,7 @@ function clearProgress(id) {
   store.set(KEYS.progress, state.progress);
 }
 
-/* ---------- Card Rendering (Premium) ---------- */
+/* ---------- Card Rendering (Ticket Stub) ---------- */
 function cardHTML(item) {
   indexItems([item]);
   const saved = inList(item.id);
@@ -173,23 +173,23 @@ function cardHTML(item) {
     <div class="card-poster" style="${posterStyle(item)}">
       <img src="${item.poster || ''}" alt="${esc(item.title)}" loading="lazy" onerror="this.style.display='none'">
       <div class="poster-overlay"></div>
-      
-      <span class="badge-4k">4K</span>
-      <span class="badge-hdr">HDR</span>
-      <span class="badge-rating">★ ${item.rating || '—'}</span>
-      
+
+      <span class="stub-fmt">35MM</span>
+      <span class="stub-rating">★ ${item.rating || '—'}</span>
+
       <div class="quick-actions">
         <button class="quick-action-btn play" data-play="${esc(item.id)}" aria-label="Play">▶</button>
         <button class="quick-action-btn" data-bookmark="${esc(item.id)}" aria-label="${saved ? 'Remove' : 'Add'}">${saved ? '✓' : '+'}</button>
         <button class="quick-action-btn" data-detail="${esc(item.id)}" aria-label="Details">ⓘ</button>
       </div>
-      
+
       <div class="card-details">
+        <div class="perf"></div>
         <div class="title">${esc(item.title)}</div>
         <div class="meta">
           <span>${year || '—'}</span>
           ${genre ? `<span class="genre-tag">${esc(genre)}</span>` : ''}
-          <span>•</span>
+          <span>·</span>
           <span>${item.rating ? `★ ${item.rating}` : '—'}</span>
         </div>
       </div>
@@ -202,20 +202,25 @@ function continueCardHTML(item) {
   return base.replace(
     '<div class="quick-actions">',
     `<div class="quick-actions">
-      <button class="quick-action-btn" data-remove="${esc(item.id)}" aria-label="Remove from history" style="background:rgba(255,0,0,0.15);color:#ff4444;">×</button>`
+      <button class="quick-action-btn" data-remove="${esc(item.id)}" aria-label="Remove from history" style="background:rgba(201,72,31,0.25);color:#e8a688;">×</button>`
   );
 }
 
-function rowHTML(title, items, routeLink) {
+function rowHTML(title, items, routeLink, index) {
   if (!items?.length) return '';
   const rowId = `row-${title.replace(/\s/g, '-').replace(/[^a-zA-Z0-9-]/g, '')}`;
+  const num = typeof index === 'number' ? String(index + 1).padStart(2, '0') : null;
   return `<div class="row-container">
+    <div class="reel-divider" aria-hidden="true"></div>
     <div class="flex items-baseline justify-between px-1 mb-3">
-      <div>
-        <h2 class="section-title">${esc(title)}</h2>
-        <p class="section-subtitle">${items.length} titles</p>
+      <div class="row-heading">
+        ${num ? `<span class="row-number">${num}</span>` : ''}
+        <div>
+          <h2 class="section-title">${esc(title)}</h2>
+          <p class="section-subtitle">${items.length} titles</p>
+        </div>
       </div>
-      ${routeLink ? `<span class="text-white/30 text-sm hover:text-white/60 cursor-pointer transition-colors" data-route="${esc(routeLink)}">View all →</span>` : ''}
+      ${routeLink ? `<span class="view-all" data-route="${esc(routeLink)}">Full programme →</span>` : ''}
     </div>
     <div class="row-scroll" id="${rowId}">
       ${items.map(cardHTML).join('')}
@@ -232,12 +237,15 @@ function rowHTML(title, items, routeLink) {
 function continueRowHTML(items) {
   if (!items?.length) return '';
   return `<div class="row-container" id="cwRow">
+    <div class="reel-divider" aria-hidden="true"></div>
     <div class="flex items-baseline justify-between px-1 mb-3">
-      <div>
-        <h2 class="section-title">Continue Watching</h2>
-        <p class="section-subtitle">${items.length} titles</p>
+      <div class="row-heading">
+        <div>
+          <h2 class="section-title">Resume</h2>
+          <p class="section-subtitle">${items.length} titles</p>
+        </div>
       </div>
-      <span class="text-white/30 text-sm hover:text-white/60 cursor-pointer transition-colors" data-clear-history>Clear all</span>
+      <span class="view-all" data-clear-history>Clear stub</span>
     </div>
     <div class="row-scroll">
       ${items.map(continueCardHTML).join('')}
@@ -248,10 +256,13 @@ function continueRowHTML(items) {
 function watchlistRowHTML(items) {
   if (!items?.length) return '';
   return `<div class="row-container" id="watchlistRow">
+    <div class="reel-divider" aria-hidden="true"></div>
     <div class="flex items-baseline justify-between px-1 mb-3">
-      <div>
-        <h2 class="section-title">My Watchlist</h2>
-        <p class="section-subtitle">${items.length} titles</p>
+      <div class="row-heading">
+        <div>
+          <h2 class="section-title">Reserved</h2>
+          <p class="section-subtitle">${items.length} titles</p>
+        </div>
       </div>
     </div>
     <div class="row-scroll">
@@ -276,7 +287,7 @@ function bindRowNav() {
   });
 }
 
-/* ---------- Hero ---------- */
+/* ---------- Hero (Marquee) ---------- */
 function setHero(idx) {
   state.heroIdx = idx;
   const item = state.heroItems[idx];
@@ -292,7 +303,7 @@ function setHero(idx) {
   const content = $('#heroContent');
   if (content) {
     content.innerHTML = `
-      <span class="hero-badge">${item.type === 'series' ? 'Featured Series' : 'Featured Movie'}</span>
+      <span class="hero-badge">${item.type === 'series' ? 'Now Screening · Series' : 'Now Screening'}</span>
       <h1 class="hero-title">${esc(item.title)}</h1>
       <div class="hero-meta">
         ${item.rating ? `<span class="rating">★ ${item.rating}</span>` : ''}
@@ -340,7 +351,7 @@ function initHero(trendData) {
   restartHeroTimer();
 }
 
-/* ---------- Trending ---------- */
+/* ---------- Trending (Board) ---------- */
 const PERIOD = {
   '24h': { movie: () => api.trendingMoviesDay(), series: () => api.trendingTVDay() },
   '7d': { movie: () => api.trendingMovies(), series: () => api.trendingTV() },
@@ -350,12 +361,12 @@ const PERIOD = {
 function trendListHTML(items) {
   return (items || []).slice(0, 8).map((item, i) => {
     indexItems([item]);
-    return `<div class="trend-item flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 cursor-pointer transition-colors" data-id="${esc(item.id)}">
-      <span class="text-2xl font-black w-8 text-center ${i === 0 ? 'text-[#FFD700]' : i === 1 ? 'text-white/30' : i === 2 ? 'text-[#cd7f32]' : 'text-white/10'}">${String(i + 1).padStart(2, '0')}</span>
-      <div class="w-12 h-16 rounded-lg bg-cover bg-center flex-shrink-0" style="${posterStyle(item)}"></div>
+    return `<div class="trend-item" data-id="${esc(item.id)}">
+      <span class="trend-rank ${i === 0 ? 'is-first' : i === 1 ? 'is-second' : i === 2 ? 'is-third' : ''}">${String(i + 1).padStart(2, '0')}</span>
+      <div class="trend-thumb" style="${posterStyle(item)}"></div>
       <div class="flex-1 min-w-0">
-        <div class="font-semibold text-sm truncate">${esc(item.title)}</div>
-        <div class="text-white/30 text-xs">★ ${item.rating || '—'}</div>
+        <div class="trend-title">${esc(item.title)}</div>
+        <div class="trend-sub">★ ${item.rating || '—'}</div>
       </div>
     </div>`;
   }).join('');
@@ -370,19 +381,21 @@ async function buildTrending() {
   const m = movies.status === 'fulfilled' ? movies.value : [];
   const s = series.status === 'fulfilled' ? series.value : [];
 
-  return `<div class="max-w-[1560px] mx-auto px-6 md:px-8 py-8">
-    <h2 class="section-title">Trending Now</h2>
-    <p class="section-subtitle mb-6">Popularity based on CINEMAX views</p>
+  return `<div class="max-w-[1560px] mx-auto px-6 md:px-8 py-8 board-section">
+    <div class="board-heading">
+      <h2 class="section-title">Box Office Board</h2>
+      <p class="section-subtitle mb-6">Ranked by CINEMAX audience activity</p>
+    </div>
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <div>
-        <h3 class="font-bold text-white/60 text-sm uppercase tracking-wider mb-3">Top Movies</h3>
-        <div class="glass rounded-xl p-2">
+        <h3 class="board-col-label">Feature Film</h3>
+        <div class="board-panel">
           ${trendListHTML(m)}
         </div>
       </div>
       <div>
-        <h3 class="font-bold text-white/60 text-sm uppercase tracking-wider mb-3">Top TV Shows</h3>
-        <div class="glass rounded-xl p-2">
+        <h3 class="board-col-label">Serial Programme</h3>
+        <div class="board-panel">
           ${trendListHTML(s)}
         </div>
       </div>
@@ -394,12 +407,12 @@ async function buildTrending() {
 async function renderHome() {
   const hero = $('#hero');
   if (hero) hero.style.display = 'flex';
-  
+
   const info = $('#infoBlocks');
   if (info) info.style.display = 'block';
 
   const view = $('#view');
-  if (view) view.innerHTML = '<div class="text-white/30 text-center py-20">Loading CINEMAX…</div>';
+  if (view) view.innerHTML = '<div class="loading-state">Rolling the reel…</div>';
 
   try {
     const [trend, nowPlaying, topMovies, popularTV, topTV] = await Promise.all([
@@ -418,13 +431,14 @@ async function renderHome() {
     [...state.history, ...state.list].forEach(h => state.index[h.id] = h);
 
     let html = '';
+    let rowIndex = 0;
     if (state.history.length) html += continueRowHTML(state.history);
     if (state.list.length) html += watchlistRowHTML(state.list);
-    html += rowHTML('Trending Now', trend, 'movie');
-    html += rowHTML('Now Playing', nowPlaying, 'movie');
-    html += rowHTML('Top Rated Movies', topMovies, 'movie');
-    html += rowHTML('Popular TV Shows', popularTV, 'series');
-    html += rowHTML('Top Rated TV Shows', topTV, 'series');
+    html += rowHTML('Now Showing', trend, 'movie', rowIndex++);
+    html += rowHTML('In Theatres', nowPlaying, 'movie', rowIndex++);
+    html += rowHTML('Critics\u2019 Picks — Film', topMovies, 'movie', rowIndex++);
+    html += rowHTML('Serial Programme', popularTV, 'series', rowIndex++);
+    html += rowHTML('Critics\u2019 Picks — Series', topTV, 'series', rowIndex++);
 
     try {
       html += await buildTrending();
@@ -438,10 +452,11 @@ async function renderHome() {
   } catch (err) {
     console.error('[renderHome] fatal:', err);
     if (view) {
+      view.innerHTml = '';
       view.innerHTML = `
         <div class="max-w-2xl mx-auto text-center py-20 px-6">
-          <h2 class="text-[#8B5CF6] font-bold text-2xl mb-4">⚠️ Failed to load</h2>
-          <p class="text-white/40 mb-6">${esc(err.message || 'Unknown error')}</p>
+          <h2 class="error-title">Projector jammed</h2>
+          <p class="error-msg">${esc(err.message || 'Unknown error')}</p>
           <button onclick="location.reload()" class="hero-btn hero-btn-primary">Retry</button>
         </div>
       `;
@@ -453,7 +468,7 @@ async function renderHome() {
 async function renderGrid(type) {
   const hero = $('#hero');
   if (hero) hero.style.display = 'none';
-  
+
   const info = $('#infoBlocks');
   if (info) info.style.display = 'none';
 
@@ -479,7 +494,8 @@ async function renderGrid(type) {
   if (view) {
     view.innerHTML = `
       <div class="max-w-[1560px] mx-auto px-6 md:px-8 pt-24 pb-4">
-        <h1 class="text-4xl font-black tracking-tight">${type === 'movie' ? 'Movies' : 'TV Shows'}</h1>
+        <span class="listing-eyebrow">${type === 'movie' ? 'Feature Catalogue' : 'Series Catalogue'}</span>
+        <h1 class="listing-title">${type === 'movie' ? 'Film' : 'Television'}</h1>
       </div>
       <div class="max-w-[1560px] mx-auto px-6 md:px-8 pb-6 flex flex-wrap gap-3">
         <select id="fGenre" class="filter-pill">
@@ -499,7 +515,7 @@ async function renderGrid(type) {
       </div>
       <div class="max-w-[1560px] mx-auto px-6 md:px-8">
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="grid">
-          <div class="text-white/30 text-center py-20 col-span-full">Loading…</div>
+          <div class="loading-state col-span-full">Loading…</div>
         </div>
         <button class="load-more hidden" id="loadMore">Load More</button>
       </div>
@@ -519,7 +535,7 @@ function resetGrid() {
   state.grid.items = [];
   state.grid.loading = false;
   const grid = $('#grid');
-  if (grid) grid.innerHTML = '<div class="text-white/30 text-center py-20 col-span-full">Loading…</div>';
+  if (grid) grid.innerHTML = '<div class="loading-state col-span-full">Loading…</div>';
   loadGridPage(true);
 }
 
@@ -540,7 +556,7 @@ async function loadGridPage(fresh = false) {
     if (grid) {
       grid.innerHTML = state.grid.items.length
         ? state.grid.items.map(cardHTML).join('')
-        : '<div class="text-white/30 text-center py-20 col-span-full">No titles match your filters.</div>';
+        : '<div class="loading-state col-span-full">No titles match your filters.</div>';
     }
 
     const more = $('#loadMore');
@@ -550,7 +566,7 @@ async function loadGridPage(fresh = false) {
   } catch (err) {
     const grid = $('#grid');
     if (grid) {
-      grid.innerHTML = `<div class="text-white/30 text-center py-20 col-span-full">Failed to load: ${esc(err.message)}</div>`;
+      grid.innerHTML = `<div class="loading-state col-span-full">Failed to load: ${esc(err.message)}</div>`;
     }
   } finally {
     state.grid.loading = false;
@@ -561,27 +577,27 @@ async function loadGridPage(fresh = false) {
 async function renderGenres() {
   const hero = $('#hero');
   if (hero) hero.style.display = 'none';
-  
+
   const info = $('#infoBlocks');
   if (info) info.style.display = 'none';
 
   const view = $('#view');
   if (view) {
-    view.innerHTML = `<div class="max-w-[1560px] mx-auto px-6 md:px-8 pt-24 pb-4"><h1 class="text-4xl font-black tracking-tight">Browse by Genre</h1></div><div id="gwrap" class="max-w-[1560px] mx-auto px-6 md:px-8"><div class="text-white/30 text-center py-20">Loading…</div></div>`;
+    view.innerHTML = `<div class="max-w-[1560px] mx-auto px-6 md:px-8 pt-24 pb-4"><span class="listing-eyebrow">By Category</span><h1 class="listing-title">Genres</h1></div><div id="gwrap" class="max-w-[1560px] mx-auto px-6 md:px-8"><div class="loading-state">Loading…</div></div>`;
   }
 
   const allGenres = getGenres();
-  const rows = await Promise.all(allGenres.slice(0, 10).map(async (g) => {
+  const rows = await Promise.all(allGenres.slice(0, 10).map(async (g, i) => {
     try {
       const items = await api.byGenreRow('movie', g.id);
       indexItems(items);
-      return rowHTML(g.name, items);
+      return rowHTML(g.name, items, null, i);
     } catch { return ''; }
   }));
 
   const wrap = $('#gwrap');
   if (wrap) {
-    wrap.innerHTML = rows.join('') || '<div class="text-white/30 text-center py-20">No genres available.</div>';
+    wrap.innerHTML = rows.join('') || '<div class="loading-state">No genres available.</div>';
     bindRowNav();
   }
 }
@@ -590,7 +606,7 @@ async function renderGenres() {
 async function renderYears() {
   const hero = $('#hero');
   if (hero) hero.style.display = 'none';
-  
+
   const info = $('#infoBlocks');
   if (info) info.style.display = 'none';
 
@@ -599,14 +615,14 @@ async function renderYears() {
 
   const view = $('#view');
   if (view) {
-    view.innerHTML = `<div class="max-w-[1560px] mx-auto px-6 md:px-8 pt-24 pb-4"><h1 class="text-4xl font-black tracking-tight">Browse by Year</h1></div><div id="ywrap" class="max-w-[1560px] mx-auto px-6 md:px-8"><div class="text-white/30 text-center py-20">Loading…</div></div>`;
+    view.innerHTML = `<div class="max-w-[1560px] mx-auto px-6 md:px-8 pt-24 pb-4"><span class="listing-eyebrow">By Release</span><h1 class="listing-title">Years</h1></div><div id="ywrap" class="max-w-[1560px] mx-auto px-6 md:px-8"><div class="loading-state">Loading…</div></div>`;
   }
 
-  const rows = await Promise.all(years.map(async (y) => {
+  const rows = await Promise.all(years.map(async (y, i) => {
     try {
       const { items } = await api.discover('movie', { year: y, sort: 'popularity.desc', page: 1 });
       indexItems(items);
-      return rowHTML(`${y}`, items.slice(0, 16));
+      return rowHTML(`${y}`, items.slice(0, 16), null, i);
     } catch { return ''; }
   }));
 
@@ -621,7 +637,7 @@ async function renderYears() {
 async function renderSearch(q) {
   const hero = $('#hero');
   if (hero) hero.style.display = 'none';
-  
+
   const info = $('#infoBlocks');
   if (info) info.style.display = 'none';
 
@@ -630,11 +646,12 @@ async function renderSearch(q) {
   if (view) {
     view.innerHTML = `
       <div class="max-w-[1560px] mx-auto px-6 md:px-8 pt-24 pb-4">
-        <h1 class="text-4xl font-black tracking-tight">Search: "${safeQ}"</h1>
+        <span class="listing-eyebrow">Search Results</span>
+        <h1 class="listing-title">"${safeQ}"</h1>
       </div>
       <div class="max-w-[1560px] mx-auto px-6 md:px-8">
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4" id="sgrid">
-          <div class="text-white/30 text-center py-20 col-span-full">Searching…</div>
+          <div class="loading-state col-span-full">Searching…</div>
         </div>
       </div>
     `;
@@ -647,12 +664,12 @@ async function renderSearch(q) {
     if (grid) {
       grid.innerHTML = items.length
         ? items.map(cardHTML).join('')
-        : `<div class="text-white/30 text-center py-20 col-span-full">No results for "${safeQ}".</div>`;
+        : `<div class="loading-state col-span-full">No results for "${safeQ}".</div>`;
     }
   } catch (err) {
     const grid = $('#sgrid');
     if (grid) {
-      grid.innerHTML = `<div class="text-white/30 text-center py-20 col-span-full">Search failed: ${esc(err.message)}</div>`;
+      grid.innerHTML = `<div class="loading-state col-span-full">Search failed: ${esc(err.message)}</div>`;
     }
   }
 }
@@ -674,7 +691,7 @@ function route(name) {
   if (routes[name]) routes[name]();
 }
 
-/* ---------- Detail ---------- */
+/* ---------- Detail (Ticket Stub Modal) ---------- */
 async function openDetail(id) {
   const stub = byId(id);
   if (!stub) return;
@@ -682,9 +699,9 @@ async function openDetail(id) {
   clearInterval(state.heroTimer);
   const card = $('#detailCard');
   if (card) {
-    card.innerHTML = `<div class="p-8 text-center"><div class="text-white/30">Loading…</div></div>`;
+    card.innerHTML = `<div class="p-8 text-center"><div class="loading-state">Printing ticket…</div></div>`;
   }
-  
+
   showModal($('#detailModal'));
   document.body.style.overflow = 'hidden';
 
@@ -707,10 +724,10 @@ async function openDetail(id) {
     episodesHTML = `
       <div class="mt-6">
         <div class="flex items-center justify-between mb-3">
-          <h4 class="font-bold">Episodes</h4>
+          <h4 class="detail-subhead">Episodes</h4>
           <select id="seasonSel" class="filter-pill text-sm" data-tmdb="${esc(item.tmdbId)}">${seasonOpts}</select>
         </div>
-        <div class="space-y-2" id="epList"><div class="text-white/30 text-sm">Loading episodes…</div></div>
+        <div class="space-y-2" id="epList"><div class="loading-state">Loading episodes…</div></div>
       </div>
     `;
   }
@@ -719,26 +736,27 @@ async function openDetail(id) {
 
   if (card) {
     card.innerHTML = `
-      <button class="absolute top-4 right-4 z-10 w-10 h-10 rounded-full bg-black/50 hover:bg-[#8B5CF6] text-white text-2xl transition-colors flex items-center justify-center" data-close>×</button>
-      <div class="h-64 md:h-80 bg-cover bg-center relative" style="${item.backdrop ? `background-image:url('${item.backdrop}')` : posterStyle(item)}">
-        <div class="absolute inset-0 bg-gradient-to-t from-[#0a0a12] to-transparent"></div>
+      <button class="modal-close" data-close>×</button>
+      <div class="detail-backdrop" style="${item.backdrop ? `background-image:url('${item.backdrop}')` : posterStyle(item)}">
+        <div class="detail-backdrop-fade"></div>
       </div>
-      <div class="p-6 md:p-8 -mt-16 relative z-10">
-        <h2 class="text-3xl font-black tracking-tight">${esc(item.title)}</h2>
-        ${item.tagline ? `<p class="text-white/40 italic mt-1">${esc(item.tagline)}</p>` : ''}
-        <div class="flex flex-wrap gap-3 items-center text-sm text-white/50 mt-3">
-          ${item.rating ? `<span class="text-[#FFD700] font-bold">★ ${item.rating}</span>` : ''}
+      <div class="detail-body">
+        <div class="stub-perf" aria-hidden="true"></div>
+        <h2 class="detail-title">${esc(item.title)}</h2>
+        ${item.tagline ? `<p class="detail-tagline">${esc(item.tagline)}</p>` : ''}
+        <div class="detail-meta">
+          ${item.rating ? `<span class="detail-rating">★ ${item.rating}</span>` : ''}
           ${item.year ? `<span>${item.year}</span>` : ''}
           ${item.runtime ? `<span>${item.runtime} min</span>` : (item.latest ? `<span>${esc(item.latest)}</span>` : '')}
-          <span class="glass px-3 py-0.5 rounded-full text-xs">${item.type === 'series' ? 'TV Series' : 'Movie'}</span>
-          ${(item.genres || []).map(g => `<span class="glass px-3 py-0.5 rounded-full text-xs">${esc(g)}</span>`).join('')}
+          <span class="tag-pill">${item.type === 'series' ? 'TV Series' : 'Feature Film'}</span>
+          ${(item.genres || []).map(g => `<span class="tag-pill">${esc(g)}</span>`).join('')}
         </div>
-        <p class="text-white/60 mt-4 max-w-2xl leading-relaxed">${esc(item.overview || '')}</p>
-        ${item.cast?.length ? `<p class="text-white/40 text-sm mt-3"><strong class="text-white/60">Cast:</strong> ${esc(item.cast.join(', '))}</p>` : ''}
+        <p class="detail-overview">${esc(item.overview || '')}</p>
+        ${item.cast?.length ? `<p class="detail-cast"><strong>Cast</strong> ${esc(item.cast.join(', '))}</p>` : ''}
         <div class="flex flex-wrap gap-3 mt-6">
           <button class="hero-btn hero-btn-primary" data-play="${esc(item.id)}" data-s="${startSeason}" data-e="1">▶ Play${playLabel}</button>
           ${item.trailerKey ? `<button class="hero-btn hero-btn-secondary" data-trailer="${esc(item.trailerKey)}">▶ Trailer</button>` : ''}
-          <button class="hero-btn hero-btn-secondary btn-list${inList(item.id) ? ' active' : ''}" data-bookmark="${esc(item.id)}">${inList(item.id) ? '✓ In Watchlist' : '+ Watchlist'}</button>
+          <button class="hero-btn hero-btn-secondary btn-list${inList(item.id) ? ' active' : ''}" data-bookmark="${esc(item.id)}">${inList(item.id) ? '✓ Reserved' : '+ Reserve'}</button>
           <button class="hero-btn hero-btn-secondary" data-close>Close</button>
         </div>
         ${episodesHTML}
@@ -751,23 +769,23 @@ async function openDetail(id) {
     const sel = $('#seasonSel');
     const loadEpisodes = async () => {
       const listEl = $('#epList');
-      if (listEl) listEl.innerHTML = '<div class="text-white/30 text-sm">Loading episodes…</div>';
+      if (listEl) listEl.innerHTML = '<div class="loading-state">Loading episodes…</div>';
       try {
         const list = await api.season(item.tmdbId, sel.value);
         const epList = $('#epList');
         if (epList) {
           epList.innerHTML = list.map(ep => `
-            <div class="flex items-center gap-4 p-3 rounded-xl glass hover:border-[#8B5CF6]/30 cursor-pointer transition-all" data-play="${esc(item.id)}" data-s="${sel.value}" data-e="${ep.episode_number}">
-              <span class="text-white/30 font-bold text-sm w-16">S${sel.value}·E${ep.episode_number}</span>
-              <span class="flex-1 text-sm">${esc(ep.name || 'Episode ' + ep.episode_number)}</span>
-              ${ep.vote_average ? `<span class="text-[#FFD700] text-sm font-bold">★ ${ep.vote_average.toFixed(1)}</span>` : ''}
-              <span class="text-[#8B5CF6]">▶</span>
+            <div class="ep-row" data-play="${esc(item.id)}" data-s="${sel.value}" data-e="${ep.episode_number}">
+              <span class="ep-code">S${sel.value}·E${ep.episode_number}</span>
+              <span class="ep-name">${esc(ep.name || 'Episode ' + ep.episode_number)}</span>
+              ${ep.vote_average ? `<span class="ep-rating">★ ${ep.vote_average.toFixed(1)}</span>` : ''}
+              <span class="ep-play">▶</span>
             </div>
-          `).join('') || '<div class="text-white/30 text-sm">No episodes available.</div>';
+          `).join('') || '<div class="loading-state">No episodes available.</div>';
         }
       } catch {
         const epList = $('#epList');
-        if (epList) epList.innerHTML = '<div class="text-white/30 text-sm">Failed to load episodes.</div>';
+        if (epList) epList.innerHTML = '<div class="loading-state">Failed to load episodes.</div>';
       }
     };
     if (sel) sel.onchange = loadEpisodes;
@@ -780,7 +798,7 @@ async function openDetail(id) {
     const box = $('#moreLikeThis');
     if (box) {
       box.innerHTML = `
-        <h4 class="font-bold mb-3">More Like This</h4>
+        <h4 class="detail-subhead mb-3">Paired Screenings</h4>
         <div class="flex gap-3 overflow-x-auto pb-2">
           ${recs.map(cardHTML).join('')}
         </div>
@@ -856,12 +874,12 @@ function renderServerBar(sources, activeIdx) {
   const bar = $('#serverBar');
   if (!bar) return;
 
-  let label = bar.querySelector('.text-white\\/30');
+  let label = bar.querySelector('.server-bar-label');
   bar.innerHTML = '';
   if (label) bar.appendChild(label);
   else {
     const lbl = document.createElement('span');
-    lbl.className = 'text-white/30 text-[10px] uppercase tracking-wider w-full mb-1';
+    lbl.className = 'server-bar-label';
     lbl.textContent = 'Sources';
     bar.appendChild(lbl);
   }
@@ -874,30 +892,25 @@ function renderServerBar(sources, activeIdx) {
     let dot = '';
     if (s.type !== 'embed') {
       if (checked) {
-        dot = cached.ok 
-          ? '<span class="inline-block w-1.5 h-1.5 rounded-full bg-green-400 mr-1"></span>'
-          : '<span class="inline-block w-1.5 h-1.5 rounded-full bg-red-400 mr-1"></span>';
+        dot = cached.ok
+          ? '<span class="status-dot online"></span>'
+          : '<span class="status-dot offline"></span>';
       } else {
-        dot = '<span class="inline-block w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse mr-1"></span>';
+        dot = '<span class="status-dot checking"></span>';
       }
     }
 
-    let typeColor = 'text-white/30';
-    if (s.type === 'embed') typeColor = 'text-purple-400/60';
-    else if (s.type === 'hls') typeColor = 'text-blue-400/60';
-    else if (s.type === 'mp4') typeColor = 'text-green-400/60';
+    let typeColor = 'src-type-embed';
+    if (s.type === 'hls') typeColor = 'src-type-hls';
+    else if (s.type === 'mp4') typeColor = 'src-type-mp4';
 
     const isActive = i === activeIdx;
     const btn = document.createElement('button');
-    btn.className = `text-xs px-3 py-1.5 rounded-full border transition-all duration-200 whitespace-nowrap ${
-      isActive 
-        ? 'bg-[#8B5CF6] border-[#8B5CF6] text-white shadow-lg shadow-purple-500/25' 
-        : 'bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white hover:border-white/20'
-    } ${!reachable && !isActive ? 'opacity-30 line-through' : ''}`;
-    
+    btn.className = `server-btn ${isActive ? 'active' : ''} ${!reachable && !isActive ? 'unreachable' : ''}`;
+
     btn.dataset.srv = i;
     btn.title = s.url || s.label || '';
-    btn.innerHTML = `${dot}<span>${esc(s.label || s.url || 'Unknown')}</span> <span class="${typeColor} text-[9px] ml-1">${s.type || 'unknown'}</span>`;
+    btn.innerHTML = `${dot}<span>${esc(s.label || s.url || 'Unknown')}</span> <span class="${typeColor}">${s.type || 'unknown'}</span>`;
 
     btn.onclick = () => {
       if (!state.player) return;
@@ -930,7 +943,7 @@ function loadSource(src) {
     if (video) { video.pause(); video.removeAttribute('src'); video.load(); video.style.display = 'none'; }
     if (controls) { controls.style.display = 'none'; controls.style.visibility = 'hidden'; controls.style.pointerEvents = 'none'; }
     if (embed) { embed.style.display = 'block'; embed.src = src.url; }
-    if (note) note.innerHTML = `Playing via <strong>${esc(src.label || 'embed')}</strong>. If the player above shows an error or won't load, try another source above, or <a href="${src.url}" target="_blank" rel="noopener" class="text-[#8B5CF6] hover:underline">open in new tab ↗</a>`;
+    if (note) note.innerHTML = `Playing via <strong>${esc(src.label || 'embed')}</strong>. If the player above shows an error or won't load, try another source above, or <a href="${src.url}" target="_blank" rel="noopener">open in new tab ↗</a>`;
     return;
   }
 
@@ -946,7 +959,7 @@ function loadSource(src) {
       state.hls = new Hls({ maxLoadingDelay: 4, crashRecoveryRetry: 2 });
       state.hls.loadSource(src.url);
       state.hls.attachMedia(video);
-      
+
       state.hls.on(Hls.Events.MANIFEST_PARSED, () => {
         if (savedProgress) video.currentTime = savedProgress;
         video.play().catch(err => console.warn('[Player] Autoplay blocked:', err));
@@ -964,7 +977,7 @@ function loadSource(src) {
         video.play().catch(err => console.warn('[Player] Native autoplay blocked:', err));
       }, { once: true });
     } else {
-      if (note) note.innerHTML = `<span class="text-red-400">HLS streams are not natively supported in this browser.</span>`;
+      if (note) note.innerHTML = `<span class="error-inline">HLS streams are not natively supported in this browser.</span>`;
     }
   } else {
     video.src = src.url;
@@ -990,7 +1003,7 @@ function handlePlayerError() {
     renderServerBar(state.player.sources, nextIdx);
   } else {
     const note = $('#playerNote');
-    if (note) note.innerHTML = `<span class="text-red-400">All direct streams failed. Please switch nodes manually.</span>`;
+    if (note) note.innerHTML = `<span class="error-inline">All direct streams failed. Please switch nodes manually.</span>`;
   }
 }
 
@@ -1011,7 +1024,7 @@ export async function openPlayer(id, season, episode) {
 
   loadProgress();
   const sources = resolveSources(item, season, episode);
-  
+
   state.player = {
     id: item.id,
     item,
@@ -1179,19 +1192,19 @@ function initGlobalListeners() {
       if (targetItem) pushHistory(targetItem);
       closeDetail();
       openPlayer(id, s, ep);
-    } 
+    }
     else if (detailBtn) {
       openDetail(detailBtn.dataset.detail);
-    } 
+    }
     else if (bookmarkBtn) {
       const id = bookmarkBtn.dataset.bookmark;
       const targetItem = byId(id);
       const added = toggleList(targetItem);
 
-      bookmarkBtn.textContent = added ? '✓ In Watchlist' : '+ Watchlist';
+      bookmarkBtn.textContent = added ? '✓ Reserved' : '+ Reserve';
       bookmarkBtn.classList.toggle('active', added);
       if (window.currentRoute === 'home') renderHome();
-    } 
+    }
     else if (removeBtn) {
       const id = removeBtn.dataset.remove;
       removeHistory(id);
@@ -1201,23 +1214,23 @@ function initGlobalListeners() {
         if (freshHistory.length) cwRow.outerHTML = continueRowHTML(freshHistory);
         else cwRow.remove();
       }
-    } 
+    }
     else if (clearHistoryBtn) {
       state.history = [];
       store.set(KEYS.history, []);
       const cwRow = document.getElementById('cwRow');
       if (cwRow) cwRow.remove();
-    } 
+    }
     else if (closeBtn) {
       closeDetail();
       closeTrailer();
       closePlayer();
-    } 
+    }
     else if (routeBtn) {
       const targetRoute = routeBtn.dataset.route;
       window.currentRoute = targetRoute;
       route(targetRoute);
-    } 
+    }
     else if (trailerBtn) {
       openTrailer(trailerBtn.dataset.trailer);
     }
@@ -1245,11 +1258,18 @@ function initGlobalListeners() {
       route(targetRoute);
     };
   });
+
+  window.addEventListener('scroll', () => {
+    const header = $('#header');
+    if (header) header.classList.toggle('scrolled', window.scrollY > 40);
+  }, { passive: true });
 }
 
 /* ---------- Module Orchestration Initialization ---------- */
 document.addEventListener('DOMContentLoaded', async () => {
   window.currentRoute = 'home';
+  const yearEl = $('#year');
+  if (yearEl) yearEl.textContent = new Date().getFullYear();
   try {
     await loadGenres();
   } catch (err) {
