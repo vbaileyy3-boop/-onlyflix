@@ -10,63 +10,10 @@ export const TMDB = {
   IMG_ORIG: 'https://image.tmdb.org/t/p/original'
 };
 
-/* ---------- Source registry ---------- */
+/* ---------- Source registry (Overrides / Specific hardcoded links) ---------- */
 const SOURCE_REGISTRY = {
-  'tv:309280:S1E1': [
-    { label: 'VidSrc', type: 'embed', url: 'https://vidsrc.to/embed/tv/309280/1/1' },
-    { label: 'VidSrc.xyz', type: 'embed', url: 'https://vidsrc.xyz/embed/tv/309280/1/1' },
-    { label: 'VidSrc.cc', type: 'embed', url: 'https://vidsrc.cc/v2/embed/tv/309280?season=1&episode=1' },
-    { label: 'Embed.su', type: 'embed', url: 'https://embed.su/embed/tv/309280/1/1' },
-    { label: 'AutoEmbed', type: 'embed', url: 'https://player.autoembed.cc/embed/tv/309280/1/1' },
-    { label: 'VidLink', type: 'embed', url: 'https://vidlink.pro/tv/309280/1/1' },
-    { label: '2Embed', type: 'embed', url: 'https://www.2embed.cc/embedtv/309280?season=1&episode=1' },
-    { label: 'MoviesAPI', type: 'embed', url: 'https://moviesapi.club/tv/309280-1-1' },
-    { label: 'MultiEmbed', type: 'embed', url: 'https://multiembed.mov/?video_id=309280&tmdb=1&season=1&episode=1' }
-  ],
-  'tv:309280:S1E2': [
-    { label: 'VidSrc', type: 'embed', url: 'https://vidsrc.to/embed/tv/309280/1/2' },
-    { label: 'VidSrc.xyz', type: 'embed', url: 'https://vidsrc.xyz/embed/tv/309280/1/2' },
-    { label: 'VidSrc.cc', type: 'embed', url: 'https://vidsrc.cc/v2/embed/tv/309280?season=1&episode=2' },
-    { label: 'Embed.su', type: 'embed', url: 'https://embed.su/embed/tv/309280/1/2' },
-    { label: 'AutoEmbed', type: 'embed', url: 'https://player.autoembed.cc/embed/tv/309280/1/2' },
-    { label: 'VidLink', type: 'embed', url: 'https://vidlink.pro/tv/309280/1/2' },
-    { label: '2Embed', type: 'embed', url: 'https://www.2embed.cc/embedtv/309280?season=1&episode=2' },
-    { label: 'MoviesAPI', type: 'embed', url: 'https://moviesapi.club/tv/309280-1-2' },
-    { label: 'MultiEmbed', type: 'embed', url: 'https://multiembed.mov/?video_id=309280&tmdb=1&season=1&episode=2' }
-  ],
-  'tv:309280:S1E3': [
-    { label: 'VidSrc', type: 'embed', url: 'https://vidsrc.to/embed/tv/309280/1/3' },
-    { label: 'VidSrc.xyz', type: 'embed', url: 'https://vidsrc.xyz/embed/tv/309280/1/3' },
-    { label: 'VidSrc.cc', type: 'embed', url: 'https://vidsrc.cc/v2/embed/tv/309280?season=1&episode=3' },
-    { label: 'Embed.su', type: 'embed', url: 'https://embed.su/embed/tv/309280/1/3' },
-    { label: 'AutoEmbed', type: 'embed', url: 'https://player.autoembed.cc/embed/tv/309280/1/3' },
-    { label: 'VidLink', type: 'embed', url: 'https://vidlink.pro/tv/309280/1/3' },
-    { label: '2Embed', type: 'embed', url: 'https://www.2embed.cc/embedtv/309280?season=1&episode=3' },
-    { label: 'MoviesAPI', type: 'embed', url: 'https://moviesapi.club/tv/309280-1-3' },
-    { label: 'MultiEmbed', type: 'embed', url: 'https://multiembed.mov/?video_id=309280&tmdb=1&season=1&episode=3' }
-  ],
-  'tv:309280:S1E4': [
-    { label: 'VidSrc', type: 'embed', url: 'https://vidsrc.to/embed/tv/309280/1/4' },
-    { label: 'VidSrc.xyz', type: 'embed', url: 'https://vidsrc.xyz/embed/tv/309280/1/4' },
-    { label: 'VidSrc.cc', type: 'embed', url: 'https://vidsrc.cc/v2/embed/tv/309280?season=1&episode=4' },
-    { label: 'Embed.su', type: 'embed', url: 'https://embed.su/embed/tv/309280/1/4' },
-    { label: 'AutoEmbed', type: 'embed', url: 'https://player.autoembed.cc/embed/tv/309280/1/4' },
-    { label: 'VidLink', type: 'embed', url: 'https://vidlink.pro/tv/309280/1/4' },
-    { label: '2Embed', type: 'embed', url: 'https://www.2embed.cc/embedtv/309280?season=1&episode=4' },
-    { label: 'MoviesAPI', type: 'embed', url: 'https://moviesapi.club/tv/309280-1-4' },
-    { label: 'MultiEmbed', type: 'embed', url: 'https://multiembed.mov/?video_id=309280&tmdb=1&season=1&episode=4' }
-  ],
-  'tv:309280:S1E5': [
-    { label: 'VidSrc', type: 'embed', url: 'https://vidsrc.to/embed/tv/309280/1/5' },
-    { label: 'VidSrc.xyz', type: 'embed', url: 'https://vidsrc.xyz/embed/tv/309280/1/5' },
-    { label: 'VidSrc.cc', type: 'embed', url: 'https://vidsrc.cc/v2/embed/tv/309280?season=1&episode=5' },
-    { label: 'Embed.su', type: 'embed', url: 'https://embed.su/embed/tv/309280/1/5' },
-    { label: 'AutoEmbed', type: 'embed', url: 'https://player.autoembed.cc/embed/tv/309280/1/5' },
-    { label: 'VidLink', type: 'embed', url: 'https://vidlink.pro/tv/309280/1/5' },
-    { label: '2Embed', type: 'embed', url: 'https://www.2embed.cc/embedtv/309280?season=1&episode=5' },
-    { label: 'MoviesAPI', type: 'embed', url: 'https://moviesapi.club/tv/309280-1-5' },
-    { label: 'MultiEmbed', type: 'embed', url: 'https://multiembed.mov/?video_id=309280&tmdb=1&season=1&episode=5' }
-  ]
+  // Manual overrides for specific TMDB IDs or episodes go here if needed.
+  // Dynamic lookup is automatically handled by EMBED_SERVERS below.
 };
 
 /* ---------- Demo pool ---------- */
@@ -107,21 +54,32 @@ const UNIVERSAL_FALLBACK = [
 
 /* ---------- Embed servers ---------- */
 const EMBED_SERVERS = [
-  { name: 'VidSrc', movie: id => `https://vidsrc.to/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
-  { name: 'VidSrc.xyz', movie: id => `https://vidsrc.xyz/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}` },
-  { name: 'VidSrc.cc', movie: id => `https://vidsrc.cc/v2/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.cc/v2/embed/tv/${id}?season=${s}&episode=${e}` },
-  { name: 'Embed.su', movie: id => `https://embed.su/embed/movie/${id}`, tv: (id, s, e) => `https://embed.su/embed/tv/${id}/${s}/${e}` },
-  { name: 'AutoEmbed', movie: id => `https://player.autoembed.cc/embed/movie/${id}`, tv: (id, s, e) => `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}` },
+  // High-Speed Primary Servers
+  { name: 'VidSrc.to', movie: id => `https://vidsrc.to/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
   { name: 'VidLink', movie: id => `https://vidlink.pro/movie/${id}`, tv: (id, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}` },
-  { name: '2Embed', movie: id => `https://www.2embed.cc/embed/${id}`, tv: (id, s, e) => `https://www.2embed.cc/embedtv/${id}?s=${s}&e=${e}` },
+  { name: 'Embed.su', movie: id => `https://embed.su/embed/movie/${id}`, tv: (id, s, e) => `https://embed.su/embed/tv/${id}/${s}/${e}` },
+  { name: 'VidBinge', movie: id => `https://vidbinge.dev/embed/movie/${id}`, tv: (id, s, e) => `https://vidbinge.dev/embed/tv/${id}/${s}/${e}` },
+  
+  // Secondary Mirror Servers
+  { name: 'VidSrc.xyz', movie: id => `https://vidsrc.xyz/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}` },
+  { name: 'VidSrc.pro', movie: id => `https://vidsrc.pro/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.pro/embed/tv/${id}/${s}/${e}` },
+  { name: 'VidSrc.cc', movie: id => `https://vidsrc.cc/v2/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.cc/v2/embed/tv/${id}?season=${s}&episode=${e}` },
+  { name: 'VidSrc.me', movie: id => `https://vidsrc.me/embed/movie?tmdb=${id}`, tv: (id, s, e) => `https://vidsrc.me/embed/tv?tmdb=${id}&season=${s}&episode=${e}` },
+  
+  // Backup & Multi-Source Players
+  { name: 'AutoEmbed', movie: id => `https://player.autoembed.cc/embed/movie/${id}`, tv: (id, s, e) => `https://player.autoembed.cc/embed/tv/${id}/${s}/${e}` },
+  { name: 'SmashyStream', movie: id => `https://embed.smashystream.com/playere.php?tmdb=${id}`, tv: (id, s, e) => `https://embed.smashystream.com/playere.php?tmdb=${id}&season=${s}&episode=${e}` },
+  { name: 'RiveStream', movie: id => `https://rive.stream/embed?type=movie&id=${id}`, tv: (id, s, e) => `https://rive.stream/embed?type=tv&id=${id}&season=${s}&episode=${e}` },
+  { name: '2Embed', movie: id => `https://www.2embed.cc/embed/${id}`, tv: (id, s, e) => `https://www.2embed.cc/embedtv/${id}?season=${s}&episode=${e}` },
   { name: 'MoviesAPI', movie: id => `https://moviesapi.club/movie/${id}`, tv: (id, s, e) => `https://moviesapi.club/tv/${id}-${s}-${e}` },
-  { name: 'MultiEmbed', movie: id => `https://multiembed.mov/?video_id=${id}&tmdb=1`, tv: (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}` }
+  { name: 'MultiEmbed', movie: id => `https://multiembed.mov/?video_id=${id}&tmdb=1`, tv: (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}` },
+  { name: 'NontonGo', movie: id => `https://www.nontongo.win/embed/movie/${id}`, tv: (id, s, e) => `https://www.nontongo.win/embed/tv/${id}/${s}/${e}` }
 ];
 
 /* ---------- Resolver ---------- */
 export function resolveSources(item, season, episode) {
   const isTV = item.type === 'series' || item.type === 'tv';
-  const id = item.tmdbId;
+  const id = item.tmdbId || item.id;
   const s = season ? +season : 1;
   const e = episode ? +episode : 1;
 
