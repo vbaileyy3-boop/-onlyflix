@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="tailwind.build.css">
   <link rel="stylesheet" href="styles.css">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' fill='%23C9481F' rx='3'/><text x='5' y='17' font-size='14' fill='%23F5F0E6' font-family='monospace' font-weight='700'>C</text></svg>">
 </head>
@@ -117,9 +117,9 @@
   </div>
 
   <div class="fixed inset-0 z-[200] hidden items-center justify-center p-6 modal" id="playerModal">
-    <div class="absolute inset-0" style="background:rgba(12,12,10,0.97)" data-close-player></div>
+    <div class="absolute inset-0" style="background:rgba(12,12,10,0.97)" data-close></div>
+    <button class="modal-close modal-close-fixed" data-close>×</button>
     <div class="relative z-10 w-full max-w-5xl">
-      <button class="absolute -top-12 right-0 text-3xl transition-colors" style="color:var(--stone)" data-close-player>×</button>
 
       <div class="font-bold text-lg mb-3" id="playerTitle" style="color:var(--paper);font-family:'Oswald',sans-serif;text-transform:uppercase"></div>
 
@@ -161,8 +161,8 @@
   </div>
 
   <div class="fixed inset-0 z-[300] hidden items-center justify-center p-6 backdrop-blur-xl modal" id="trailerModal" style="background:rgba(12,12,10,0.92)">
+    <button class="modal-close modal-close-fixed" data-close>×</button>
     <div class="relative w-full max-w-4xl">
-      <button class="absolute -top-12 right-0 text-3xl transition-colors" style="color:var(--stone)" data-close-trailer>×</button>
       <div class="relative pt-[56.25%] bg-black rounded-2xl overflow-hidden" style="border:1px solid var(--line-strong)">
         <iframe id="trailerIframe" class="absolute inset-0 w-full h-full" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
       </div>
