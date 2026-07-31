@@ -3,35 +3,35 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CINEMAX — Premium Streaming</title>
+  <title>CINEMAX — Now Screening</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800;14..32,900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300;14..32,400;14..32,600;14..32,700;14..32,800&family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="styles.css">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' fill='%238B5CF6' rx='4'/><text x='4' y='18' font-size='18' fill='white' font-weight='900'>C</text></svg>">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><rect width='24' height='24' fill='%23C9481F' rx='3'/><text x='5' y='17' font-size='14' fill='%23F5F0E6' font-family='monospace' font-weight='700'>C</text></svg>">
 </head>
 <body class="bg-black">
 
   <header class="site-header" id="header">
     <div class="max-w-[1560px] mx-auto px-6 md:px-8 flex items-center justify-between">
-      <a href="#" class="text-2xl font-black tracking-tight" data-route="home">
-        CINE<span class="text-[#8B5CF6]">MAX</span>
+      <a href="#" class="brand" data-route="home">
+        CINE<span>MAX</span>
       </a>
 
       <nav class="main-nav flex items-center gap-8">
-        <a href="#" data-route="home" class="text-sm font-semibold text-white/40 hover:text-white transition-colors active">Home</a>
-        <a href="#" data-route="movie" class="text-sm font-semibold text-white/40 hover:text-white transition-colors">Movies</a>
-        <a href="#" data-route="series" class="text-sm font-semibold text-white/40 hover:text-white transition-colors">TV Shows</a>
-        <a href="#" data-route="genres" class="text-sm font-semibold text-white/40 hover:text-white transition-colors">Genres</a>
-        <a href="#" data-route="years" class="text-sm font-semibold text-white/40 hover:text-white transition-colors">Years</a>
+        <a href="#" data-route="home" class="active">Home</a>
+        <a href="#" data-route="movie">Film</a>
+        <a href="#" data-route="series">Series</a>
+        <a href="#" data-route="genres">Genres</a>
+        <a href="#" data-route="years">Years</a>
       </nav>
 
       <div class="search-box relative">
-        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 stroke-white/30" viewBox="0 0 24 24" fill="none" stroke-width="2">
+        <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4" style="stroke:var(--stone-dim)" viewBox="0 0 24 24" fill="none" stroke-width="2">
           <path d="M21 21l-4.35-4.35M17 10a7 7 0 11-14 0 7 7 0 0114 0z"/>
         </svg>
-        <input type="text" id="searchInput" placeholder="Search..." class="bg-white/5 border border-white/10 rounded-full py-2.5 pl-11 pr-5 text-sm text-white placeholder-white/30 w-48 focus:w-64 transition-all duration-300 focus:border-[#8B5CF6]/50 focus:outline-none focus:shadow-[0_0_30px_rgba(139,92,246,0.05)]">
+        <input type="text" id="searchInput" placeholder="Search the catalogue…">
       </div>
     </div>
   </header>
@@ -41,7 +41,7 @@
     <div class="hero-gradient absolute inset-0 z-1"></div>
 
     <div class="hero-content" id="heroContent">
-      <span class="hero-badge">Featured Movie</span>
+      <span class="hero-badge">Now Screening</span>
       <h1 class="hero-title">Dune: Part Two</h1>
       <div class="hero-meta">
         <span class="rating">★ 8.7</span>
@@ -70,79 +70,80 @@
   </main>
 
   <section class="max-w-6xl mx-auto px-6 md:px-8 py-16 info-blocks" id="infoBlocks">
-    <h2 class="text-3xl font-black tracking-tight mb-3">Experience <span class="text-[#8B5CF6]">CINEMAX</span></h2>
-    <p class="text-white/40 max-w-2xl mb-10">Premium streaming catalog with zero registration. Metadata powered by TMDB.</p>
+    <span class="listing-eyebrow">The House Rules</span>
+    <h2 class="text-3xl font-bold mb-3">Why CINEMAX</h2>
+    <p class="text-white/40 max-w-2xl mb-10" style="color:var(--stone)">A programme, not a paywall. No registration, no watchlist upsell — metadata courtesy of TMDB.</p>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       <div class="glass rounded-xl p-6 glass-hover">
-        <div class="text-2xl mb-3">🎬</div>
-        <h3 class="font-bold text-sm mb-1">Instant Play</h3>
-        <p class="text-white/40 text-sm">Click any title and start watching instantly.</p>
+        <div class="text-2xl mb-3">🎞️</div>
+        <h3 class="font-bold text-sm mb-1">Instant Screening</h3>
+        <p class="text-sm" style="color:var(--stone)">Click any title, house lights down, film rolls.</p>
       </div>
       <div class="glass rounded-xl p-6 glass-hover">
-        <div class="text-2xl mb-3">🔒</div>
-        <h3 class="font-bold text-sm mb-1">Privacy First</h3>
-        <p class="text-white/40 text-sm">No registration. Watch history stays local.</p>
+        <div class="text-2xl mb-3">🎫</div>
+        <h3 class="font-bold text-sm mb-1">No Box Office Line</h3>
+        <p class="text-sm" style="color:var(--stone)">No registration. Watch history stays on your device.</p>
       </div>
       <div class="glass rounded-xl p-6 glass-hover">
         <div class="text-2xl mb-3">🌍</div>
-        <h3 class="font-bold text-sm mb-1">Global Access</h3>
-        <p class="text-white/40 text-sm">No regional restrictions. Works everywhere.</p>
+        <h3 class="font-bold text-sm mb-1">Every Seat's Good</h3>
+        <p class="text-sm" style="color:var(--stone)">No regional restrictions. Works everywhere.</p>
       </div>
       <div class="glass rounded-xl p-6 glass-hover">
-        <div class="text-2xl mb-3">✨</div>
-        <h3 class="font-bold text-sm mb-1">Smart Player</h3>
-        <p class="text-white/40 text-sm">Auto-fallback with server health checks.</p>
+        <div class="text-2xl mb-3">🔁</div>
+        <h3 class="font-bold text-sm mb-1">Projectionist on Call</h3>
+        <p class="text-sm" style="color:var(--stone)">Auto-fallback with live server health checks.</p>
       </div>
     </div>
   </section>
 
-  <footer class="border-t border-white/5 mt-10">
+  <footer class="border-t mt-10" style="border-color:var(--line)">
     <div class="max-w-6xl mx-auto px-6 md:px-8 py-12 text-center">
-      <a href="#" class="text-xl font-black tracking-tight" data-route="home">
-        CINE<span class="text-[#8B5CF6]">MAX</span>
+      <a href="#" class="brand" data-route="home">
+        CINE<span>MAX</span>
       </a>
-      <p class="text-white/20 text-sm max-w-2xl mx-auto mt-4 leading-relaxed">
-        <strong>DMCA Content Removal Policy.</strong> Demo/educational front-end clone. Metadata © TMDB.
+      <p class="text-sm max-w-2xl mx-auto mt-4 leading-relaxed" style="color:var(--stone-dim)">
+        <strong style="color:var(--stone)">DMCA Content Removal Policy.</strong> Demo/educational front-end clone. Metadata © TMDB.
         Uses TMDB API but is not endorsed by TMDB.
       </p>
-      <p class="text-white/10 text-xs mt-6">© <span id="year"></span> CINEMAX · Powered by TMDB</p>
+      <p class="text-xs mt-6" style="color:var(--stone-dim)">© <span id="year"></span> CINEMAX · Powered by TMDB</p>
     </div>
   </footer>
 
   <div class="fixed inset-0 z-[200] hidden items-center justify-center p-6 modal" id="detailModal">
-    <div class="absolute inset-0 bg-black/90 backdrop-blur-md" data-close></div>
-    <div class="relative z-10 bg-[#0a0a12] rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-auto border border-white/5 modal-card" id="detailCard"></div>
+    <div class="absolute inset-0 backdrop-blur-md" style="background:rgba(12,12,10,0.92)" data-close></div>
+    <div class="relative z-10 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-auto modal-card" id="detailCard"></div>
   </div>
 
   <div class="fixed inset-0 z-[200] hidden items-center justify-center p-6 modal" id="playerModal">
-    <div class="absolute inset-0 bg-black/95" data-close-player></div>
+    <div class="absolute inset-0" style="background:rgba(12,12,10,0.97)" data-close-player></div>
     <div class="relative z-10 w-full max-w-5xl">
-      <button class="absolute -top-12 right-0 text-white/50 hover:text-white text-3xl transition-colors" data-close-player>×</button>
-      
-      <div class="text-white font-bold text-lg mb-3" id="playerTitle"></div>
-      
+      <button class="absolute -top-12 right-0 text-3xl transition-colors" style="color:var(--stone)" data-close-player>×</button>
+
+      <div class="font-bold text-lg mb-3" id="playerTitle" style="color:var(--paper);font-family:'Oswald',sans-serif;text-transform:uppercase"></div>
+
       <div class="flex flex-wrap gap-2 mb-3 px-1" id="serverBar">
-        <span class="text-white/30 text-[10px] uppercase tracking-wider w-full mb-1">Sources</span>
+        <span class="server-bar-label">Sources</span>
       </div>
-      
-      <div class="bg-black rounded-2xl overflow-hidden aspect-video relative" id="videoWrap">
+
+      <div class="bg-black rounded-2xl overflow-hidden aspect-video relative" id="videoWrap" style="border:1px solid var(--line-strong)">
         <video id="videoEl" class="w-full h-full" preload="metadata" playsinline></video>
         <iframe id="embedEl" class="w-full h-full hidden" allowfullscreen allow="autoplay; encrypted-media"></iframe>
-        
+
         <div class="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/90 to-transparent" id="videoControls">
-          <div class="h-1 bg-white/20 rounded cursor-pointer mb-3" id="progress">
+          <div class="h-1 rounded cursor-pointer mb-3" id="progress">
             <div class="h-full w-0 rounded" id="progressFilled"></div>
           </div>
           <div class="flex items-center gap-3 flex-wrap">
-            <button id="btnPlay" class="text-white/70 hover:text-white text-xl transition-colors">▶</button>
-            <button id="btnBack" class="text-white/50 hover:text-white text-sm transition-colors">⟲</button>
-            <button id="btnFwd" class="text-white/50 hover:text-white text-sm transition-colors">⟳</button>
-            <button id="btnMute" class="text-white/50 hover:text-white transition-colors">🔊</button>
-            <input type="range" id="volSlider" min="0" max="1" step="0.05" value="1" class="w-16 accent-[#8B5CF6] cursor-pointer">
-            <span class="text-white/50 text-sm" id="timeLabel">0:00 / 0:00</span>
+            <button id="btnPlay" class="text-xl transition-colors" style="color:var(--ink)">▶</button>
+            <button id="btnBack" class="text-sm transition-colors" style="color:var(--stone)">⟲</button>
+            <button id="btnFwd" class="text-sm transition-colors" style="color:var(--stone)">⟳</button>
+            <button id="btnMute" class="transition-colors" style="color:var(--stone)">🔊</button>
+            <input type="range" id="volSlider" min="0" max="1" step="0.05" value="1" class="w-16 cursor-pointer" style="accent-color:var(--marquee)">
+            <span class="text-sm mono" id="timeLabel" style="color:var(--stone)">0:00 / 0:00</span>
             <div class="flex-1"></div>
-            <select id="speedSel" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white/70 text-xs focus:border-[#8B5CF6]/50 focus:outline-none">
+            <select id="speedSel" class="rounded px-2 py-1 text-xs focus:outline-none mono" style="background:rgba(237,231,216,0.05);border:1px solid var(--line-strong);color:var(--ink)">
               <option value="0.5">0.5×</option>
               <option value="0.75">0.75×</option>
               <option value="1" selected>1×</option>
@@ -150,19 +151,19 @@
               <option value="1.5">1.5×</option>
               <option value="2">2×</option>
             </select>
-            <button id="btnFull" class="text-white/50 hover:text-white transition-colors">⛶</button>
+            <button id="btnFull" class="transition-colors" style="color:var(--stone)">⛶</button>
           </div>
         </div>
       </div>
-      
-      <div class="text-white/30 text-sm mt-3 text-center" id="playerNote"></div>
+
+      <div class="text-sm mt-3 text-center mono" id="playerNote" style="color:var(--stone-dim)"></div>
     </div>
   </div>
 
-  <div class="fixed inset-0 z-[300] hidden items-center justify-center p-6 bg-black/90 backdrop-blur-xl modal" id="trailerModal">
+  <div class="fixed inset-0 z-[300] hidden items-center justify-center p-6 backdrop-blur-xl modal" id="trailerModal" style="background:rgba(12,12,10,0.92)">
     <div class="relative w-full max-w-4xl">
-      <button class="absolute -top-12 right-0 text-white/50 hover:text-white text-3xl transition-colors" data-close-trailer>×</button>
-      <div class="relative pt-[56.25%] bg-black rounded-2xl overflow-hidden border border-white/5">
+      <button class="absolute -top-12 right-0 text-3xl transition-colors" style="color:var(--stone)" data-close-trailer>×</button>
+      <div class="relative pt-[56.25%] bg-black rounded-2xl overflow-hidden" style="border:1px solid var(--line-strong)">
         <iframe id="trailerIframe" class="absolute inset-0 w-full h-full" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
       </div>
     </div>
