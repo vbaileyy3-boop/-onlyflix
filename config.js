@@ -10,10 +10,9 @@ export const TMDB = {
   IMG_ORIG: 'https://image.tmdb.org/t/p/original'
 };
 
-/* ---------- Source registry (Overrides / Specific hardcoded links) ---------- */
+/* ---------- Source registry ---------- */
 const SOURCE_REGISTRY = {
   // Manual overrides for specific TMDB IDs or episodes go here if needed.
-  // Dynamic lookup is automatically handled by EMBED_SERVERS below.
 };
 
 /* ---------- Demo pool ---------- */
@@ -55,14 +54,15 @@ const UNIVERSAL_FALLBACK = [
 /* ---------- Embed servers ---------- */
 const EMBED_SERVERS = [
   // High-Speed Primary Servers
-  { name: 'VidSrc.to', movie: id => `https://vidsrc.to/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.to/embed/tv/${id}/${s}/${e}` },
+  { name: 'VidSrc.vip', movie: id => `https://vidsrc.vip/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.vip/embed/tv/${id}/${s}/${e}` },
   { name: 'VidLink', movie: id => `https://vidlink.pro/movie/${id}`, tv: (id, s, e) => `https://vidlink.pro/tv/${id}/${s}/${e}` },
-  { name: 'Embed.su', movie: id => `https://embed.su/embed/movie/${id}`, tv: (id, s, e) => `https://embed.su/embed/tv/${id}/${s}/${e}` },
+  { name: 'VidSrc.pro', movie: id => `https://vidsrc.pro/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.pro/embed/tv/${id}/${s}/${e}` },
   { name: 'VidBinge', movie: id => `https://vidbinge.dev/embed/movie/${id}`, tv: (id, s, e) => `https://vidbinge.dev/embed/tv/${id}/${s}/${e}` },
   
   // Secondary Mirror Servers
+  { name: 'VidSrc.in', movie: id => `https://vidsrc.in/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.in/embed/tv/${id}/${s}/${e}` },
+  { name: 'VidSrc.pm', movie: id => `https://vidsrc.pm/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.pm/embed/tv/${id}/${s}/${e}` },
   { name: 'VidSrc.xyz', movie: id => `https://vidsrc.xyz/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.xyz/embed/tv/${id}/${s}/${e}` },
-  { name: 'VidSrc.pro', movie: id => `https://vidsrc.pro/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.pro/embed/tv/${id}/${s}/${e}` },
   { name: 'VidSrc.cc', movie: id => `https://vidsrc.cc/v2/embed/movie/${id}`, tv: (id, s, e) => `https://vidsrc.cc/v2/embed/tv/${id}?season=${s}&episode=${e}` },
   { name: 'VidSrc.me', movie: id => `https://vidsrc.me/embed/movie?tmdb=${id}`, tv: (id, s, e) => `https://vidsrc.me/embed/tv?tmdb=${id}&season=${s}&episode=${e}` },
   
@@ -71,9 +71,7 @@ const EMBED_SERVERS = [
   { name: 'SmashyStream', movie: id => `https://embed.smashystream.com/playere.php?tmdb=${id}`, tv: (id, s, e) => `https://embed.smashystream.com/playere.php?tmdb=${id}&season=${s}&episode=${e}` },
   { name: 'RiveStream', movie: id => `https://rive.stream/embed?type=movie&id=${id}`, tv: (id, s, e) => `https://rive.stream/embed?type=tv&id=${id}&season=${s}&episode=${e}` },
   { name: '2Embed', movie: id => `https://www.2embed.cc/embed/${id}`, tv: (id, s, e) => `https://www.2embed.cc/embedtv/${id}?season=${s}&episode=${e}` },
-  { name: 'MoviesAPI', movie: id => `https://moviesapi.club/movie/${id}`, tv: (id, s, e) => `https://moviesapi.club/tv/${id}-${s}-${e}` },
-  { name: 'MultiEmbed', movie: id => `https://multiembed.mov/?video_id=${id}&tmdb=1`, tv: (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}` },
-  { name: 'NontonGo', movie: id => `https://www.nontongo.win/embed/movie/${id}`, tv: (id, s, e) => `https://www.nontongo.win/embed/tv/${id}/${s}/${e}` }
+  { name: 'MultiEmbed', movie: id => `https://multiembed.mov/?video_id=${id}&tmdb=1`, tv: (id, s, e) => `https://multiembed.mov/?video_id=${id}&tmdb=1&s=${s}&e=${e}` }
 ];
 
 /* ---------- Resolver ---------- */
