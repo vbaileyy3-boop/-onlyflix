@@ -66,7 +66,7 @@
 
   <main class="relative z-10 -mt-20 pb-20" id="main">
     <div id="view">
-      </div>
+    </div>
   </main>
 
   <section class="max-w-6xl mx-auto px-6 md:px-8 py-16 info-blocks" id="infoBlocks">
@@ -111,15 +111,17 @@
     </div>
   </footer>
 
-  <div class="fixed inset-0 z-[200] hidden items-center justify-center p-6 modal" id="detailModal">
+  <!-- Detail Modal -->
+  <div class="fixed inset-0 z-[200] hidden flex items-center justify-center p-6 modal" id="detailModal">
     <div class="absolute inset-0 backdrop-blur-md" style="background:rgba(12,12,10,0.92)" data-close></div>
-    <div class="relative z-10 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-auto modal-card" id="detailCard"></div>
+    <div class="relative z-10 rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-auto modal-card mx-auto" id="detailCard"></div>
   </div>
 
-  <div class="fixed inset-0 z-[200] hidden items-center justify-center p-6 modal" id="playerModal">
+  <!-- Player Modal -->
+  <div class="fixed inset-0 z-[200] hidden flex items-center justify-center p-6 modal" id="playerModal">
     <div class="absolute inset-0" style="background:rgba(12,12,10,0.97)" data-close></div>
     <button class="modal-close modal-close-fixed" data-close>×</button>
-    <div class="relative z-10 w-full max-w-5xl">
+    <div class="relative z-10 w-full max-w-5xl mx-auto">
 
       <div class="font-bold text-lg mb-3" id="playerTitle" style="color:var(--paper);font-family:'Oswald',sans-serif;text-transform:uppercase"></div>
 
@@ -160,9 +162,10 @@
     </div>
   </div>
 
-  <div class="fixed inset-0 z-[300] hidden items-center justify-center p-6 backdrop-blur-xl modal" id="trailerModal" style="background:rgba(12,12,10,0.92)">
+  <!-- Trailer Modal -->
+  <div class="fixed inset-0 z-[300] hidden flex items-center justify-center p-6 backdrop-blur-xl modal" id="trailerModal" style="background:rgba(12,12,10,0.92)">
     <button class="modal-close modal-close-fixed" data-close>×</button>
-    <div class="relative w-full max-w-4xl">
+    <div class="relative w-full max-w-4xl mx-auto">
       <div class="relative pt-[56.25%] bg-black rounded-2xl overflow-hidden" style="border:1px solid var(--line-strong)">
         <iframe id="trailerIframe" class="absolute inset-0 w-full h-full" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
       </div>
