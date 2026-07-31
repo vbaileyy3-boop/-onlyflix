@@ -1142,6 +1142,27 @@ body {
   border-color: var(--marquee);
 }
 
+/* Fixed-to-viewport variant: used on modals (player, trailer) whose inner
+   content height varies, where an absolutely-positioned button floating
+   above the content could get pushed off-screen. Pinning to the viewport
+   corner guarantees it's always reachable regardless of content height. */
+.modal-close-fixed {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 310;
+}
+
+@media (max-width: 640px) {
+  .modal-close-fixed {
+    top: 12px;
+    right: 12px;
+    width: 34px;
+    height: 34px;
+    font-size: 20px;
+  }
+}
+
 /* ---------- Detail modal — printed ticket ---------- */
 
 .detail-backdrop {
