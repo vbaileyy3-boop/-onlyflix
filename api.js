@@ -34,14 +34,14 @@ async function tmdb(path, params = {}, retries = 2) {
       }
       if (!res.ok) throw new Error(`TMDB ${res.status} ${path}`);
       const data = await res.json();
-      
+
       if (cache.size >= MAX_CACHE_ITEMS) {
         const now = Date.now();
         for (const [k, v] of cache.entries()) {
           if (now - v.ts > CACHE_TTL) cache.delete(k);
         }
       }
-      
+
       cache.set(cacheKey, { data, ts: Date.now() });
       return data;
     } catch (err) {
